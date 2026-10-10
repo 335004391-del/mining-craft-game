@@ -73,6 +73,15 @@
   .gem-tier{font-size:10px;font-weight:800;color:#fff;background:var(--accent);border-radius:99px;padding:1px 7px;margin-right:5px;vertical-align:middle;letter-spacing:.5px}
   .li{display:flex;align-items:center;gap:10px;background:var(--card);border-radius:13px;padding:11px 12px;
     box-shadow:var(--shadow);margin-bottom:8px}
+  /* 2 列网格（仓库的宝石/镐子/矿石） */
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .grid2 > .li{margin-bottom:0;flex-direction:column;align-items:flex-start;gap:5px;padding:10px}
+  .grid2 > .li .ic{width:32px;height:32px;font-size:18px}
+  .grid2 > .li .nm{font-size:13px;line-height:1.3}
+  .grid2 > .li .nm small{display:block;font-size:10px}
+  .grid2 > .li .ct{font-size:12px;align-self:flex-end;margin-top:auto}
+  .pick-card{min-height:130px}
+  .grid2 > .empty{grid-column:1/-1;width:100%}
   .li .ic{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex:none;background:#f1e9da}
   .li .nm{flex:1;font-weight:700;font-size:14px}
   .li .nm small{display:block;color:var(--sub);font-weight:500;font-size:11px}
@@ -170,6 +179,7 @@
     <!-- 仓库 -->
     <div class="tab" id="tInv">
       <div class="inv-h">🔨 我的镐子 <span id="pickCount" style="float:right;color:var(--accent-d)"></span></div>
+      <div id="pickList" class="grid2"></div>
       <div class="card" style="padding:11px 12px;margin-bottom:10px">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
           <span style="font-size:13px;flex:1;min-width:120px">🤖 自动出售攻击低于<span id="thRefAtk" style="color:var(--accent-d);font-weight:800;margin:0 4px">—</span>的镐子</span>
@@ -177,11 +187,10 @@
         </div>
         <div id="thHint" style="font-size:11px;color:var(--sub);margin-top:6px;line-height:1.5">当前没有装备镐子时，自动出售不会清理任何镐子</div>
       </div>
-      <div id="pickList"></div>
       <div class="inv-h">💎 宝石（用于合成）</div>
-      <div id="gemList"></div>
+      <div id="gemList" class="grid2"></div>
       <div class="inv-h">🪨 矿石（可出售）<button class="sell-all" id="sellAllOre">💰 一键出售全部矿石</button></div>
-      <div id="oreList"></div>
+      <div id="oreList" class="grid2"></div>
     </div>
     <!-- 升级 -->
     <div class="tab" id="tUp">
@@ -838,31 +847,23 @@
         const isEq=st.equip===p, lv=starOf(p);
         const m=p.mult!=null?p.mult:1;
         const tier=m>=5?"🌟":m>=2?"✨":m>=0.5?"·":m>=0.2?"⚠️":"💀";
-        const a=p.attrs || computeAttrs(p.gemQ,p.oreLv,0,0,0,0);
         const lvColor=lv>=8?"var(--gold)":lv>=6?"var(--accent-d)":lv>=4?"var(--ink)":"var(--sub)";
         const d=document.createElement("div");
-        d.className="li"; d.style.flexDirection="column"; d.style.alignItems="stretch"; d.style.gap="7px";
+        d.className="li pick-card" + (isEq?" on":"");
+        if(isEq) d.style.border="2px solid var(--good)";
         d.innerHTML=`
-          <div style="display:flex;align-items:center;gap:8px">
-            <div class="ic" style="color:var(--accent-d)">⛏️</div>
-            <div class="nm" style="flex:1">
-              <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-                <span style="font-weight:800;color:var(--ink)">${p.name||pickName(p)}</span>
-                <span>⚔️ ${fmt(p.attack)}</span>
-                <span style="color:var(--accent-d)">DPS ${fmt(pickDPS(p))}</span>
-                <span style="color:${lvColor};font-size:11px;font-weight:800">Lv.${lv}</span>
-                <span style="font-size:11px">${tier}×${m}</span>
-                ${isEq?'<span style="font-size:11px;color:#fff;background:var(--good);border-radius:99px;padding:1px 8px;font-weight:700">已装备</span>':''}
-              </div>
-              <small style="display:block;line-height:1.6;color:var(--sub)">
-                暴 ${a.crit.toFixed(0)}% · 暴伤 ${a.critDmg}% · 速 ${a.atkSpd}/s · 连 ${p.conn}%<br>
-                💎 宝加 ${fmt(a.gemBonus)} · 🪨 矿加 ${fmt(a.oreBonus)}${(p.affixes&&p.affixes.length)?' · ✨ '+p.affixes.join(' / '):''}
-              </small>
-            </div>
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:4px;width:100%">
+            <div style="font-weight:800;font-size:12px;line-height:1.2;flex:1">${p.name||pickName(p)}</div>
+            <div style="color:${lvColor};font-size:10px;font-weight:800;background:${lv>=8?'rgba(230,180,34,.15)':'#f6f0e4'};border-radius:99px;padding:1px 6px;flex:none">Lv.${lv}</div>
           </div>
-          <div style="display:flex;gap:8px">
-            ${isEq?'':'<button class="sell" data-eq="'+p.id+'" style="background:var(--accent)">装备</button>'}
-            <button class="sell" data-sl="${p.id}">出售 +🪙 ${fmt(pickSellValue(p))}</button>
+          <div style="font-size:11px;color:var(--sub);line-height:1.4">
+            ⚔️ ${fmt(p.attack)}<br>
+            <span style="color:var(--accent-d)">DPS ${fmt(pickDPS(p))}</span>
+          </div>
+          <div style="display:flex;gap:4px;margin-top:auto;width:100%">
+            ${isEq?'<button class="sell" disabled style="flex:1;opacity:.6;padding:5px;font-size:10px">已装备</button>'
+                 :'<button class="sell" data-eq="'+p.id+'" style="flex:1;background:var(--accent);padding:5px;font-size:10px">装备</button>'}
+            <button class="sell" data-sl="${p.id}" style="flex:1;padding:5px;font-size:10px">🪙${fmt(pickSellValue(p))}</button>
           </div>`;
         const eqb=d.querySelector('[data-eq]'); if(eqb)eqb.onclick=()=>equipPick(p.id);
         d.querySelector('[data-sl]').onclick=()=>sellPick(p.id);
@@ -889,10 +890,15 @@
     let anyO=false, totOreCnt=0, totOreVal=0;
     Object.keys(st.ores).map(Number).sort((a,b)=>b-a).forEach(l=>{ if(st.ores[l]){anyO=true; totOreCnt+=st.ores[l]; totOreVal+=st.ores[l]*l*8;
       const d=document.createElement("div");d.className="li";
-      d.innerHTML=`<div class="ic">🪨</div>
-        <div class="nm">矿石 Lv.${l}<small>出售价 🪙 ${l*8}/个</small></div>
-        <div class="ct">×${fmt(st.ores[l])}</div>
-        <button class="sell" data-l="${l}">出售</button>`;
+      d.innerHTML=`
+        <div style="display:flex;align-items:center;gap:8px;width:100%">
+          <div class="ic">🪨</div>
+          <div class="nm" style="flex:1">矿石 Lv.${l}<small>出售 🪙 ${l*8}/个</small></div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:4px;width:100%">
+          <div class="ct" style="font-size:13px">×${fmt(st.ores[l])}</div>
+          <button class="sell" data-l="${l}" style="padding:4px 8px;font-size:11px">出售</button>
+        </div>`;
       d.querySelector(".sell").onclick=()=>sellOre(l);
       ol.appendChild(d);}});
     // 一键出售按钮
