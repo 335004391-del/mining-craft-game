@@ -1,0 +1,4 @@
+.workbuddy/
+_*.js
+*.log
+.DS_Store

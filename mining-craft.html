@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>合成挖矿</title>
+<style>
+  :root{
+    --bg:#faf7f0;--card:#fff;--ink:#3a3228;--sub:#9a8f7d;
+    --line:#ece5d8;--accent:#e08a3c;--accent-d:#c4701f;
+    --good:#3f9d5a;--bad:#c0392b;--blue:#4a90d9;--purple:#9b59b6;--gold:#e6b422;
+    --shadow:0 4px 14px rgba(120,95,55,.12);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%}
+  body{
+    background:var(--bg);color:var(--ink);
+    font-family:-apple-system,"PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+    display:flex;flex-direction:column;align-items:center;user-select:none;overflow:hidden;
+  }
+  .app{width:100%;max-width:480px;height:100%;display:flex;flex-direction:column;position:relative}
+  /* 顶栏 */
+  .head{padding:12px 14px 6px;display:flex;align-items:center;gap:8px}
+  .head .ttl{font-weight:800;font-size:18px;flex:1;letter-spacing:1px}
+  .gear{width:38px;height:38px;border-radius:11px;border:1px solid var(--line);background:var(--card);
+    display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:var(--shadow);cursor:pointer}
+  .statbar{display:flex;gap:8px;padding:0 14px 8px}
+  .chip{flex:1;background:var(--card);border-radius:13px;padding:9px 6px;text-align:center;box-shadow:var(--shadow)}
+  .chip .v{font-weight:800;font-size:17px;line-height:1}
+  .chip .k{font-size:11px;color:var(--sub);margin-top:3px}
+  /* 内容 */
+  .body{flex:1;overflow-y:auto;padding:6px 14px 14px}
+  .tab{display:none;animation:fade .18s} .tab.on{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1}}
+  .card{background:var(--card);border-radius:16px;padding:15px;box-shadow:var(--shadow);margin-bottom:12px}
+  .card h3{margin:0 0 10px;font-size:15px}
+  /* 镐子展示 */
+  .pk{display:flex;flex-direction:column;gap:8px}
+  .row{display:flex;justify-content:space-between;align-items:center;font-size:14px}
+  .row .lab{color:var(--sub)}
+  .row .val{font-weight:700}
+  .bar{height:7px;background:var(--line);border-radius:9px;overflow:hidden;margin-top:3px}
+  .bar>i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-d));border-radius:9px}
+  .big{font-size:30px;font-weight:800;color:var(--accent-d)}
+  /* 挖矿按钮 */
+  .dig{flex:1;width:100%;border:none;border-radius:18px;background:linear-gradient(145deg,#e8a44e,#c4701f);
+    color:#fff;font-size:22px;font-weight:800;padding:22px;margin-top:6px;box-shadow:var(--shadow);
+    cursor:pointer;touch-action:manipulation}
+  .dig:active{transform:scale(.97)}
+  .floater{position:absolute;left:50%;top:38%;transform:translateX(-50%);
+    font-weight:800;font-size:18px;color:var(--accent-d);white-space:nowrap;
+    text-shadow:0 1px 3px rgba(255,255,255,.8);animation:pop .9s ease-out forwards}
+  @keyframes pop{0%{opacity:0;transform:translate(-50%,8px) scale(.8)}
+    15%{opacity:1}100%{opacity:0;transform:translate(-50%,-50px) scale(1.05)}}
+  .auto{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:10px;color:var(--sub);font-size:14px}
+  .sw{width:46px;height:26px;border-radius:99px;background:var(--line);position:relative;transition:.2s;cursor:pointer}
+  .sw.on{background:var(--good)} .sw>i{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.2s}
+  .sw.on>i{left:23px}
+  /* 合成 */
+  .sel{display:flex;gap:10px;margin:6px 0 12px}
+  .sel>div{flex:1;background:#f6f0e4;border-radius:13px;padding:11px;text-align:center}
+  .sel .nm{font-weight:700;font-size:14px} .sel .sub{font-size:11px;color:var(--sub);margin-top:2px}
+  .btn{width:100%;border:none;border-radius:14px;padding:15px;font-size:16px;font-weight:800;cursor:pointer;
+    background:var(--accent);color:#fff;box-shadow:var(--shadow)}
+  .btn:disabled{background:#d9cfbe;color:#fff;cursor:not-allowed}
+  .btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+  .batch{flex:1;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:11px;padding:10px 0;font-size:14px;font-weight:800;cursor:pointer;transition:.15s}
+  .batch.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .note{font-size:12px;color:var(--sub);margin-top:8px;text-align:center}
+  /* 仓库 */
+  .inv-h{font-size:13px;color:var(--sub);margin:4px 2px 8px;font-weight:700;display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .sell-all{border:none;background:var(--good);color:#fff;border-radius:10px;padding:6px 10px;font-weight:700;font-size:12px;cursor:pointer;letter-spacing:.5px}
+  .gem-tier{font-size:10px;font-weight:800;color:#fff;background:var(--accent);border-radius:99px;padding:1px 7px;margin-right:5px;vertical-align:middle;letter-spacing:.5px}
+  .li{display:flex;align-items:center;gap:10px;background:var(--card);border-radius:13px;padding:11px 12px;
+    box-shadow:var(--shadow);margin-bottom:8px}
+  .li .ic{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex:none;background:#f1e9da}
+  .li .nm{flex:1;font-weight:700;font-size:14px}
+  .li .nm small{display:block;color:var(--sub);font-weight:500;font-size:11px}
+  .li .ct{font-weight:800;font-size:15px;margin-right:8px}
+  .li .sell{border:none;background:var(--good);color:#fff;border-radius:10px;padding:8px 12px;font-weight:700;font-size:13px;cursor:pointer}
+  .empty{text-align:center;color:var(--sub);font-size:13px;padding:20px}
+  /* 升级 */
+  .up{display:flex;align-items:center;gap:12px}
+  .up .ic{width:44px;height:44px;border-radius:12px;background:#f1e9da;display:flex;align-items:center;justify-content:center;font-size:22px;flex:none}
+  .up .info{flex:1} .up .nm{font-weight:700;font-size:15px}
+  .up .ds{color:var(--sub);font-size:12px;margin-top:2px}
+  .up .lv{font-size:11px;color:#fff;background:var(--accent);border-radius:99px;padding:1px 7px;font-weight:700;margin-left:6px}
+  .up .buy{border:none;background:var(--blue);color:#fff;border-radius:11px;padding:10px 14px;font-weight:800;font-size:13px;cursor:pointer;white-space:nowrap}
+  .up .buy:disabled{background:#d9cfbe}
+  .up .ds b{color:var(--good);font-weight:800}
+  .preview{margin-top:6px;background:#f6f0e4;border-radius:13px;padding:13px;font-size:13px;line-height:1.7;text-align:center}
+  .preview .big2{font-size:24px;font-weight:800;color:var(--accent-d);margin:4px 0}
+  .attr-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:6px}
+  .lv-badge{font-size:13px;font-weight:800;color:#fff;border-radius:99px;padding:3px 9px;letter-spacing:.5px}
+  .ac{background:#f6f0e4;border-radius:9px;padding:7px 4px;text-align:center}
+  .ac .ak{font-size:10px;color:var(--sub)}
+  .ac .av{font-weight:800;font-size:13px;color:var(--ink);margin-top:1px}
+  .diff-sub{font-size:11px;color:var(--sub);margin-top:4px;line-height:1.5}
+  /* 底栏 */
+  .nav{display:flex;border-top:1px solid var(--line);background:var(--bg)}
+  .nav button{flex:1;border:none;background:none;padding:9px 0;font-size:11px;color:var(--sub);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}
+  .nav button .e{font-size:20px}
+  .nav button.on{color:var(--accent-d);font-weight:700}
+  /* 抽屉 */
+  .mask{position:fixed;inset:0;background:rgba(40,30,15,.4);opacity:0;visibility:hidden;transition:.2s;z-index:20}
+  .mask.on{opacity:1;visibility:visible}
+  .drawer{position:fixed;top:0;right:0;height:100%;width:82%;max-width:330px;background:var(--bg);z-index:21;
+    transform:translateX(100%);transition:.25s;box-shadow:-8px 0 30px rgba(0,0,0,.15);padding:22px 18px;overflow-y:auto}
+  .drawer.on{transform:none}
+  .drawer h3{margin:0 0 14px;font-size:18px}
+  .drawer .row{background:var(--card);border-radius:14px;padding:13px;margin-bottom:10px;box-shadow:var(--shadow);font-size:14px;line-height:1.6}
+  .drawer .row b{color:var(--accent-d)}
+  .hint{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;
+    font-size:13px;padding:8px 16px;border-radius:99px;opacity:0;transition:.2s;pointer-events:none;z-index:30}
+  .hint.on{opacity:.95}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="head">
+    <div class="ttl">⛏️ 合成挖矿</div>
+    <div class="gear" id="gear">⚙️</div>
+  </div>
+  <div class="statbar">
+    <div class="chip"><div class="v" id="hGem">0</div><div class="k">💎宝石</div></div>
+    <div class="chip"><div class="v" id="hCoin">0</div><div class="k">🪙金币</div></div>
+    <div class="chip"><div class="v" id="hAtk">0</div><div class="k">⚔️攻击/DPS</div></div>
+  </div>
+
+  <div class="body">
+    <!-- 挖矿 -->
+    <div class="tab on" id="tMine">
+      <div class="card" id="pkCard"></div>
+      <div class="card" style="padding:13px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px">
+          <div style="font-weight:700;font-size:15px">⛰️ 当前矿脉 <span id="mineName" style="color:var(--accent-d)">🟫 碎石坡</span></div>
+          <div id="oreTotal" style="font-size:13px;color:var(--sub)">🪨 矿石 0</div>
+        </div>
+        <div id="diffTag" style="font-size:12px;color:var(--sub);margin-bottom:9px">难度 —</div>
+        <div id="mineChips" style="display:flex;gap:6px;overflow-x:auto;flex-wrap:nowrap;padding-bottom:5px;margin-bottom:10px"></div>
+        <div id="conquestBox">
+          <div class="row" style="font-size:13px;margin-bottom:4px"><span class="lab">🪓 攻打进度</span><span class="val" id="conquestText">0 / 10</span></div>
+          <div class="bar" style="height:9px"><i id="conquestBar" style="width:0%"></i></div>
+          <div id="conquestHint" style="font-size:11px;color:var(--sub);margin-top:5px;line-height:1.5">累计挖出目标数量的矿石，并且镐子对当前矿脉效率 ≥ 90% 时自动突破到下一层</div>
+        </div>
+      </div>
+      <div style="position:relative">
+        <button class="dig" id="dig">⛏️ 挖矿</button>
+        <div id="floatLayer" style="position:absolute;inset:0;pointer-events:none;overflow:hidden"></div>
+      </div>
+      <div class="auto">自动挖矿<span class="sw" id="swAuto"><i></i></span></div>
+    </div>
+    <!-- 合成 -->
+    <div class="tab" id="tCraft">
+      <div class="card">
+        <h3>🔨 合成镐子</h3>
+        <div class="sel">
+          <div><div class="nm" id="cGem">—</div><div class="sub">宝石</div></div>
+          <div><div class="nm" id="cOre">—</div><div class="sub">矿石</div></div>
+        </div>
+        <div style="display:flex;gap:6px;margin:0 0 10px">
+          <button class="batch on" data-b="1">×1</button>
+          <button class="batch" data-b="10">×10</button>
+          <button class="batch" data-b="100">×100</button>
+        </div>
+        <button class="btn" id="craftBtn">合成 1 把镐子</button>
+        <div class="note">消耗当前最优宝石 + 矿石各 N 把（N=批量）。批量越大，自动出售阈值按当前装备攻击判定，保留最强的 1 把入仓。</div>
+      </div>
+    </div>
+    <!-- 仓库 -->
+    <div class="tab" id="tInv">
+      <div class="inv-h">🔨 我的镐子 <span id="pickCount" style="float:right;color:var(--accent-d)"></span></div>
+      <div class="card" style="padding:11px 12px;margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span style="font-size:13px;flex:1;min-width:120px">🤖 自动出售攻击低于<span id="thRefAtk" style="color:var(--accent-d);font-weight:800;margin:0 4px">—</span>的镐子</span>
+          <span class="sw" id="swAutoSell"><i></i></span>
+        </div>
+        <div id="thHint" style="font-size:11px;color:var(--sub);margin-top:6px;line-height:1.5">当前没有装备镐子时，自动出售不会清理任何镐子</div>
+      </div>
+      <div id="pickList"></div>
+      <div class="inv-h">💎 宝石（用于合成）</div>
+      <div id="gemList"></div>
+      <div class="inv-h">🪨 矿石（可出售）<button class="sell-all" id="sellAllOre">💰 一键出售全部矿石</button></div>
+      <div id="oreList"></div>
+    </div>
+    <!-- 升级 -->
+    <div class="tab" id="tUp">
+      <div class="card"><h3>📈 基础升级（4 条）</h3>
+        <div class="up card" style="box-shadow:none;padding:0;margin-bottom:10px">
+          <div class="ic">🔧</div>
+          <div class="info"><div class="nm">强化合成<span class="lv" id="lvCraft">Lv.0</span></div>
+            <div class="ds" id="dsCraft">合成出高重量 / 高质量镐子</div></div>
+          <button class="buy" id="buyCraft">50</button>
+        </div>
+        <div class="up card" style="box-shadow:none;padding:0;margin-bottom:10px">
+          <div class="ic">🍀</div>
+          <div class="info"><div class="nm">提升掉落<span class="lv" id="lvDrop">Lv.0</span></div>
+            <div class="ds" id="dsDrop">挖矿掉落高等级宝石 / 矿石</div></div>
+          <button class="buy" id="buyDrop">50</button>
+        </div>
+        <div class="up card" style="box-shadow:none;padding:0;margin-bottom:10px">
+          <div class="ic">💎</div>
+          <div class="info"><div class="nm">强化宝石<span class="lv" id="lvGem">Lv.0</span></div>
+            <div class="ds" id="dsGem">提升宝石加成与暴击率</div></div>
+          <button class="buy" id="buyGem">80</button>
+        </div>
+        <div class="up card" style="box-shadow:none;padding:0;margin-bottom:10px">
+          <div class="ic">🪨</div>
+          <div class="info"><div class="nm">强化矿石<span class="lv" id="lvOre">Lv.0</span></div>
+            <div class="ds" id="dsOre">提升矿石加成与攻击速度</div></div>
+          <button class="buy" id="buyOre">80</button>
+        </div>
+        <h3 style="margin-top:6px">👑 打造人员（4 条）</h3>
+        <div class="up card" style="box-shadow:none;padding:0;margin-bottom:10px">
+          <div class="ic">👑</div>
+          <div class="info"><div class="nm">名望<span class="lv" id="lvFame">Lv.0</span></div>
+            <div class="ds" id="dsFame">词缀出现率 +0.5%/级，攻击下限提升</div></div>
+          <button class="buy" id="buyFame">120</button>
+        </div>
+        <div class="up card" style="box-shadow:none;padding:0;margin-bottom:10px">
+          <div class="ic">🔥</div>
+          <div class="info"><div class="nm">锻造<span class="lv" id="lvForge">Lv.0</span></div>
+            <div class="ds" id="dsForge">连接质量浮动收窄、下限抬高</div></div>
+          <button class="buy" id="buyForge">100</button>
+        </div>
+        <div class="up card" style="box-shadow:none;padding:0;margin-bottom:10px">
+          <div class="ic">🌟</div>
+          <div class="info"><div class="nm">名将出品<span class="lv" id="lvLegend">Lv.0</span></div>
+            <div class="ds" id="dsLegend">高 mult 概率 +2%/级，词缀数 +1</div></div>
+          <button class="buy" id="buyLegend">150</button>
+        </div>
+        <div class="up card" style="box-shadow:none;padding:0;margin-bottom:10px">
+          <div class="ic">🍀</div>
+          <div class="info"><div class="nm">运气<span class="lv" id="lvLucky">Lv.0</span></div>
+            <div class="ds" id="dsLucky">高级词缀概率 +1%/级，连质量上限</div></div>
+          <button class="buy" id="buyLucky">130</button>
+        </div>
+        <div class="preview">
+          🔨 下一把镐子预计 DPS（综合 6 维）<br>
+          <div class="big2" id="prevDps">—</div>
+          <div style="font-size:11px;color:var(--sub);margin-top:2px" id="prevAttr">攻击 / 暴击 / 暴伤 / 攻速</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="nav">
+    <button class="on" data-t="tMine"><span class="e">⛏️</span>挖矿</button>
+    <button data-t="tCraft"><span class="e">🔨</span>合成</button>
+    <button data-t="tInv"><span class="e">🎒</span>仓库</button>
+    <button data-t="tUp"><span class="e">📈</span>升级</button>
+  </div>
+</div>
+
+<div class="mask" id="mask"></div>
+<div class="drawer" id="drawer">
+  <button class="gear" style="position:absolute;top:14px;right:14px;border:none;background:none;font-size:24px" id="closex">×</button>
+  <h3>设置 / 统计</h3>
+  <div class="row">🪙 金币：<b id="sCoin">0</b><br>💎 宝石：<b id="sGem">0</b>（最高 <span id="sGemTier">—</span> 阶）<br>⛏️ 总挖矿：<b id="sMine">0</b> 次<br>⚔️ 最高攻击：<b id="sAtk">0</b> · <b id="sDps" style="color:var(--accent-d)">0</b> DPS</div>
+  <div class="row">💾 进度自动存本机。关闭后再打开按离线时长结算挖矿收益。</div>
+  <button class="btn ghost" id="saveBtn" style="margin-bottom:10px">立即保存</button>
+  <button class="btn" id="resetBtn" style="background:var(--bad)">重置存档</button>
+</div>
+<div class="hint" id="hint"></div>
+
+<script>
+(function(){
+  const SAVE="mine_craft_v1";
+  // 16 阶宝石（从低到高；颜色渐变 + emoji）
+  const GEM=[
+    null,
+    {n:"普通宝石",   e:"⚪", c:"#bdbdbd"},
+    {n:"精致宝石",   e:"🟢", c:"#5bbf6a"},
+    {n:"翠绿宝石",   e:"💚", c:"#27ae60"},
+    {n:"海洋宝石",   e:"🔵", c:"#4a90d9"},
+    {n:"深蓝宝石",   e:"💙", c:"#1f4fbf"},
+    {n:"紫晶宝石",   e:"🟣", c:"#9b59b6"},
+    {n:"暗紫宝石",   e:"🟪", c:"#6c3a8a"},
+    {n:"玫瑰宝石",   e:"🌸", c:"#e85a8a"},
+    {n:"绯红宝石",   e:"🔴", c:"#c0392b"},
+    {n:"琥珀宝石",   e:"🟠", c:"#e08a3c"},
+    {n:"黄金宝石",   e:"🟡", c:"#e6b422"},
+    {n:"月白宝石",   e:"🌕", c:"#f4d35e"},
+    {n:"幽绿宝石",   e:"🐉", c:"#16a085"},
+    {n:"幻影宝石",   e:"👁️",c:"#34495e"},
+    {n:"星辉宝石",   e:"⭐", c:"#7df0ff"},
+    {n:"创世宝石",   e:"🌌", c:"#ff5ff5"},
+  ];
+  // 稀有词缀（合成时小概率追加，使镐子更强力）
+  const AFFIXES=[
+    {n:"锋利",   desc:"+15% 暴击伤害",      mod:p=>{p.attrs.critDmg=Math.round(p.attrs.critDmg*1.15);}},
+    {n:"迅捷",   desc:"+20% 攻击速度",      mod:p=>{p.attrs.atkSpd=+(p.attrs.atkSpd*1.2).toFixed(2);}},
+    {n:"精准",   desc:"+8% 暴击率",         mod:p=>{p.attrs.crit=clamp(p.attrs.crit+8,5,95);}},
+    {n:"重量级", desc:"+25% 物理攻击",      mod:p=>{p.attack=Math.round(p.attack*1.25); p.attrs.phys=Math.round(p.attrs.phys*1.25);}},
+    {n:"完美",   desc:"连接质量强制 99",     mod:p=>{p.conn=99;}},
+    {n:"宝石之心",desc:"宝石加成 ×2",        mod:p=>{p.attrs.gemBonus*=2;}},
+    {n:"矿石之魂",desc:"矿石加成 ×2",        mod:p=>{p.attrs.oreBonus*=2;}},
+  ];
+  // 矿脉配置：18 种矿脉，难度指数级上升（每级约 ×3.35）
+  // 6 维防御：def=防御, blk=格挡率%, arm=护甲, eva=闪避%, res=抗性%, spdPenalty=攻速惩罚
+  // target: 打败该矿需要挖出这么多矿石（用于自动解锁判定）
+  const VEINS=[
+    {n:"碎石坡",  e:"🟫", def:0,          blk:0,  arm:0,    eva:2,  res:0,  spdPenalty:0,    yld:1.00, drop:1.00, target:10,   ore:1,  gem:1},
+    {n:"铁矿脉",  e:"⚫", def:2000,       blk:5,  arm:200,  eva:3,  res:5,  spdPenalty:2,    yld:1.30, drop:1.25, target:30,   ore:2,  gem:2},
+    {n:"铜矿脉",  e:"🟠", def:9700,       blk:8,  arm:600,  eva:5,  res:8,  spdPenalty:4,    yld:1.48, drop:1.40, target:60,   ore:3,  gem:3},
+    {n:"银矿脉",  e:"⬜", def:36495,      blk:10, arm:1500, eva:8,  res:10, spdPenalty:5,    yld:1.60, drop:1.50, target:120,  ore:4,  gem:4},
+    {n:"金矿脉",  e:"🟡", def:127258,     blk:12, arm:3500, eva:6,  res:15, spdPenalty:6,    yld:1.70, drop:1.58, target:220,  ore:5,  gem:5},
+    {n:"秘银矿脉",e:"🔷", def:432314,     blk:15, arm:8000, eva:4,  res:20, spdPenalty:7,    yld:1.78, drop:1.65, target:380,  ore:7,  gem:6},
+    {n:"水晶矿脉",e:"💠", def:1455252,    blk:8,  arm:2000, eva:25, res:25, spdPenalty:5,    yld:1.84, drop:1.70, target:600,  ore:9,  gem:7},
+    {n:"暗影矿脉",e:"🟣", def:4883094,    blk:10, arm:1000, eva:40, res:35, spdPenalty:6,    yld:1.90, drop:1.75, target:950,  ore:12, gem:8},
+    {n:"龙晶矿脉",e:"🔶", def:16367365,   blk:30, arm:25000,eva:5,  res:45, spdPenalty:10,   yld:1.95, drop:1.79, target:1500, ore:15, gem:9},
+    {n:"虚空矿脉",e:"🟥", def:54840673,   blk:20, arm:8000, eva:30, res:50, spdPenalty:8,    yld:2.00, drop:1.83, target:2300, ore:20, gem:10},
+    {n:"翡翠矿脉",e:"🟢", def:183727255,  blk:12, arm:15000,eva:45, res:55, spdPenalty:9,    yld:2.04, drop:1.86, target:3500, ore:26, gem:11},
+    {n:"深海矿脉",e:"🔵", def:615498304,  blk:18, arm:30000,eva:50, res:60, spdPenalty:11,   yld:2.08, drop:1.90, target:5200, ore:34, gem:12},
+    {n:"熔岩矿脉",e:"🟤", def:2061932318, blk:25, arm:80000,eva:15, res:65, spdPenalty:14,   yld:2.11, drop:1.93, target:7800, ore:44, gem:13},
+    {n:"星陨矿脉",e:"🌟", def:6907487265, blk:20, arm:50000,eva:35, res:70, spdPenalty:12,   yld:2.14, drop:1.95, target:11500,ore:58, gem:14},
+    {n:"雷霆矿脉",e:"⚡", def:23140097338,blk:35, arm:20000,eva:60, res:75, spdPenalty:18,   yld:2.17, drop:1.98, target:17000,ore:76, gem:14},
+    {n:"寒冰矿脉",e:"❄️", def:77519342082,blk:30, arm:120000,eva:40,res:80, spdPenalty:20,   yld:2.20, drop:2.00, target:25000,ore:100,gem:15},
+    {n:"烈焰矿脉",e:"🔥", def:259689812975,blk:25, arm:200000,eva:30,res:85, spdPenalty:25,   yld:2.23, drop:2.02, target:36000,ore:132,gem:15},
+    {n:"亡灵矿脉",e:"💀", def:869960891466,blk:40, arm:300000,eva:50,res:90, spdPenalty:30,   yld:2.25, drop:2.04, target:52000,ore:174,gem:16},
+  ];
+  // 打败判定：累计挖出 target 个该矿矿石，且当前镐子对它的效率 ≥ 90%
+  const WIN_EFF=0.9;
+  const $=s=>document.querySelector(s);
+  const rnd=(a,b)=>a+Math.random()*(b-a);
+  const ri=(a,b)=>Math.floor(rnd(a,b+1));
+  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  // 对数均匀分布：[lo, hi] 区间内，中位数 1.0×，最高 10×、最低 0.1×，做出"神作/垃圾"两极分化
+  function logUniform(lo,hi){ return lo*Math.pow(hi/lo, Math.random()); }
+  const UNITS=["","K","M","B","T","Qa","Qi","Sx","Sp","Oc","No","Dc"];
+  function fmt(n){
+    if(!isFinite(n))return "0";
+    n=Math.floor(n);
+    if(n<1000)return ""+n;                 // 不足 1000 显示整数
+    let v=n, i=0;
+    while(v>=1000 && i<UNITS.length-1){v/=1000;i++;}    // 切到合适的单位
+    if(v>=999.95){                                       // 四舍五入进位（避免 1000.0K / 1000.0Dc）
+      if(i<UNITS.length-1){v/=1000;i++;}
+      else return n.toExponential(1).replace("e+","e");  // 已到最后单位仍溢出 → 科学计数法
+    }
+    if(i<UNITS.length)return v.toFixed(1)+UNITS[i];      // 最多 3 位整数 + 1 位小数
+    return n.toExponential(1).replace("e+","e");         // 超出后缀：科学计数法兜底
+  }
+
+  let st=load()||{
+    gems:{1:1}, ores:{1:1}, coins:0,
+    craftLv:0, dropLv:0, gemLv:0, oreLv:0,  // 4 条基础升级
+    fameLv:0, forgeLv:0, legendLv:0, luckyLv:0,  // 4 条打造人员升级
+    picks:[], equip:null, auto:false,
+    autoSell:false, pickSeq:1, craftBatch:1,
+    mineLv:1, mineMax:1,
+    veinProgress:{},          // 每个矿脉已累计挖出的矿石数
+    mineCount:0, maxAtk:0, start:Date.now(), last:Date.now()
+  };
+  // 旧档兼容：保证 picks 数组与 equip 一致
+  if(!Array.isArray(st.picks))st.picks=[];
+  if(st.equip && !st.picks.includes(st.equip))st.picks.push(st.equip);
+  if(st.pickSeq==null)st.pickSeq=st.picks.length+1;
+  if(st.autoSell==null)st.autoSell=false;
+  if(st.craftBatch==null)st.craftBatch=1;
+  if(st.gemLv==null)st.gemLv=0;
+  if(st.oreLv==null)st.oreLv=0;
+  if(st.fameLv==null)st.fameLv=0;
+  if(st.forgeLv==null)st.forgeLv=0;
+  if(st.legendLv==null)st.legendLv=0;
+  if(st.luckyLv==null)st.luckyLv=0;
+  if(st.mineLv==null)st.mineLv=1;
+  if(st.mineMax==null)st.mineMax=1;
+  if(st.mineMax>VEINS.length)st.mineMax=VEINS.length;
+  if(st.mineLv>st.mineMax)st.mineLv=st.mineMax;
+  if(!st.veinProgress||typeof st.veinProgress!=="object")st.veinProgress={};
+
+  // 离线结算
+  (function(){
+    const now=Date.now(), sec=Math.min((now-(st.last||now))/1000, 60*60*8);
+    if(st.equip && sec>5){
+      const V=currentVein();
+      const atk=st.equip.attack;
+      const eff=V.def<=0?1:clamp(atk/(atk+V.def),0,1);
+      const g=Math.floor(atk*0.5*V.yld*eff*sec);
+      if(g>0){ const lv=rollOreLv(); st.ores[lv]=(st.ores[lv]||0)+g; st.mineCount+=Math.floor(sec); }
+      // 离线也算当前矿脉进度（按比例），可能直接突破
+      st.veinProgress[st.mineLv]=(st.veinProgress[st.mineLv]||0)+g;
+      if(checkConquest()){
+        setTimeout(()=>hint("✊ 离线时打败 "+V.n+"！已自动解锁下一矿脉"),500);
+      }
+      const gc=clamp(0.04+st.dropLv*0.01+st.equip.gemQ*0.004,0,0.5)*V.drop;
+      let est=Math.floor(sec*gc);
+      while(est-->0){ const t=rollGemTier(); st.gems[t]=(st.gems[t]||0)+1; }
+      setTimeout(()=>hint("离线挖矿 +"+fmt(g)+" 矿石"),500);
+    }
+    st.last=now;
+  })();
+
+  function rollGemTier(){
+    const eq=st.equip?st.equip.gemQ:1;
+    const V=currentVein();
+    // 中心 = 装备宝石与矿脉宝石均值 + 升级加成；最大 160 阶（×10）
+    const center=clamp(Math.round((eq+V.gem)/2 + st.dropLv*0.2*V.drop),1,160);
+    return clamp(center+ri(-20,20),1,160);
+  }
+  function rollOreLv(){
+    const V=currentVein();
+    // 矿石等级上限 9990（×10）
+    return clamp(Math.round(V.ore + rnd(-10,10) + st.dropLv*0.3*V.drop),1,9990);
+  }
+  function craftCost(lv){return Math.ceil(50*Math.pow(1.5,lv));}
+  function gemChance(){
+    const V=currentVein();
+    return clamp(0.04+st.dropLv*0.01+(st.equip?st.equip.gemQ*0.004:0),0,0.5)*V.drop;
+  }
+  // 当前矿脉：1~180 → 18 种循环
+  function currentVein(){ return VEINS[((st.mineLv-1)%VEINS.length)]; }
+  // 160 阶宝石映射：1~16 → 原表，17~160 → 循环 + 强化后缀
+  function gemAt(t){
+    const base=((t-1)%16)+1;
+    const boost=Math.floor((t-1)/16);
+    const g=GEM[base];
+    return {e:g.e, c:g.c, n:g.n + (boost?('+' + boost) : ''), base, boost};
+  }
+  // 攻击公式：重量(手柄+镐头) → 品质 → 攻击。矿石等级越高、宝石越好，攻击越大（指数滚雪球）
+  function computeAtk(g,o,craftLv,handle,head,conn){
+    const total=handle+head, quality=total*conn/100;
+    const oreMult=Math.pow(o+1,1.7);
+    return quality*g*oreMult*(1+craftLv*0.12)*5;
+  }
+  // 计算 6 维攻击属性（流放之路风格）
+  function computeAttrs(g,o,craftLv,gemLv,oreLv,conn){
+    const base=g*5+o*8+craftLv*2;
+    return {
+      phys:  Math.round(base*3*(1+craftLv*0.10)*(1+gemLv*0.08)),    // 物理攻击
+      crit:  clamp(5+gemLv*2+craftLv*0.3, 5, 80),                    // 暴击率 %
+      critDmg: Math.round(150+g*15+craftLv*1.5),                      // 暴击伤害 %
+      atkSpd:+(0.8+o*0.02+craftLv*0.02).toFixed(2),                  // 攻击速度（次/秒）
+      gemBonus:Math.round((g*10+gemLv*5)*(1+craftLv*0.05)),          // 宝石加成
+      oreBonus:Math.round((o*8+oreLv*4)*(1+craftLv*0.05))            // 矿石加成
+    };
+  }
+  // 镐子 DPS（按 6 维综合）
+  function pickDPS(p){
+    if(!p) return 0;
+    const a=p.attrs || computeAttrs(p.gemQ,p.oreLv,0,0,0,0);
+    return Math.round(p.attack*a.atkSpd*(1+a.crit/100*(a.critDmg/100-1)));
+  }
+  // 下一把镐子预计攻击区间（用当前最好的宝石/矿石 + 当前强化等级）
+  function previewAttack(){
+    const g=bestGemTier(), o=bestOreLv();
+    if(!g||!o)return null;
+    const scale=(g+o)*5+st.craftLv*0.6;
+    // 0.1× 10× 区间
+    const lo=Math.floor(computeAtk(g,o,st.craftLv,scale*0.8*0.1,scale*1.4*0.1,30));
+    const hi=Math.ceil(computeAtk(g,o,st.craftLv,scale*0.8*10,scale*1.4*10,99));
+    return {lo,hi};
+  }
+  // 按"相对该材料档位的强度倍率" + 词缀量级给数字等级 1~10
+  // 倍率 mult ∈ [0.1, 10]（log 均匀）；1× 是 5 级，0.1× 是 1 级，10× 是 9 级；词缀每条 +1（最多 +3）
+  function starOf(p){
+    const m=p.mult!=null?p.mult:1;
+    // 等级 1~100（按 mult 中心 50=1×，每词缀 +10）
+    // log10(0.1)=-1 → 10, log10(1)=0 → 50, log10(10)=1 → 90
+    const lm=Math.log10(Math.max(0.05, m));
+    let base=Math.round(50 + lm*40);
+    const aff=Math.min(30, (p.affixes||[]).length*10);
+    return clamp(base+aff, 1, 100);
+  }
+
+  function bestGemTier(){let t=0;for(const k in st.gems)if(st.gems[k]>0)t=Math.max(t,+k);return t;}
+  function bestOreLv(){let l=0;for(const k in st.ores)if(st.ores[k]>0)l=Math.max(l,+k);return l;}
+
+  // 攻打判定：进度达标 + 效率达标 → 自动跳到下一矿脉；返回是否突破
+  function checkConquest(){
+    if(st.mineMax>=180)return false;
+    const V=currentVein();
+    const atk=st.equip?st.equip.attack:0;
+    const eff=V.def<=0?1:clamp(atk/(atk+V.def),0,1);
+    const done=(st.veinProgress[st.mineLv]||0)>=V.target;
+    if(done && eff>=WIN_EFF){
+      st.mineMax++; st.mineLv=st.mineMax;
+      return true;
+    }
+    return false;
+  }
+
+  function load(){try{return JSON.parse(localStorage.getItem(SAVE));}catch(e){return null;}}
+  function save(){st.last=Date.now();localStorage.setItem(SAVE,JSON.stringify(st));}
+
+  // 挖矿
+  function mine(){
+    if(!st.equip)return;
+    const V=currentVein();
+    const atk=st.equip.attack;
+    const eff=V.def<=0?1:clamp(atk/(atk+V.def),0,1);
+    const gain=Math.max(1,Math.round(atk*0.5*V.yld*eff));
+    const lv=rollOreLv();
+    st.ores[lv]=(st.ores[lv]||0)+gain;
+    st.mineCount++;
+    // 累计当前矿脉进度
+    st.veinProgress[st.mineLv]=(st.veinProgress[st.mineLv]||0)+gain;
+    popText("+"+fmt(gain)+" 🪨", "var(--accent-d)", 0);
+    let gotGem=false;
+    if(Math.random()<gemChance()){
+      const t=rollGemTier(); st.gems[t]=(st.gems[t]||0)+1;
+      popText(gemAt(t).e+" "+gemAt(t).n+" +1", gemAt(t).c, 46); gotGem=true;
+    }
+    // 打败判定：进度达标 + 效率达标 → 自动解锁下一级
+    const win=checkConquest();
+    if(win){
+      const next=VEINS[st.mineMax-1];
+      hint("✊ 打败 "+V.n+"！解锁 "+next.e+next.n);
+    }else if((st.veinProgress[st.mineLv]||0)>=V.target && eff<WIN_EFF){
+      if(Math.random()<0.2)hint("进度已满，做出更重的镐子自动突破");
+    }
+    render();
+  }
+
+  // 挖矿飘字
+  function popText(txt,color,dx){
+    const fl=$("#floatLayer"); if(!fl)return;
+    const s=document.createElement("div"); s.className="floater";
+    s.textContent=txt; s.style.color=color||"var(--accent-d)";
+    if(dx)s.style.marginLeft=dx+"px";
+    fl.appendChild(s); setTimeout(()=>s.remove(),900);
+  }
+
+  // 镐子估价（出售价）
+  function pickSellValue(p){return Math.max(1,Math.floor(p.attack*3));}
+  // 镐子命名（PoE 风格：词缀前缀 + 核心名 + 后缀）
+  // 前缀：按 6 维属性最高的命名；后缀：按 mult/品质/词缀
+  const PREFIX=[
+    {n:"破旧",  test:p=>starOf(p)<25},
+    {n:"生锈",  test:p=>starOf(p)<40},
+    {n:"坚固",  test:p=>p.attrs&&p.attrs.atkSpd<1.0},
+    {n:"锋利",  test:p=>p.attrs&&p.attrs.crit>=30},
+    {n:"急速",  test:p=>p.attrs&&p.attrs.atkSpd>=1.8},
+    {n:"精准",  test:p=>p.attrs&&p.attrs.crit>=50},
+    {n:"凶猛",  test:p=>p.attrs&&p.attrs.critDmg>=230},
+    {n:"残暴",  test:p=>p.attrs&&p.attrs.critDmg>=260},
+    {n:"厚重",  test:p=>p.attrs&&p.attrs.oreBonus>=500},
+    {n:"璀璨",  test:p=>p.attrs&&p.attrs.gemBonus>=500},
+    {n:"巨力",  test:p=>p.attrs&&p.attrs.phys>=1e6},
+    {n:"泰坦",  test:p=>p.attack>=1e9},
+    {n:"毁天",  test:p=>p.attack>=1e12},
+    {n:"开天",  test:p=>p.attack>=1e15},
+  ];
+  const BASE_NAMEs=[
+    "破岩镐","碎星镐","裂地镐","陨铁镐","龙牙镐","幽冥镐","苍穹镐",
+    "星陨镐","雷霆镐","霜火镐","虚空镐","灭世镐","创世镐","永夜镐","天启镐"
+  ];
+  const SUFFIX=[
+    {n:"·初生", test:p=>p.mult<0.2},
+    {n:"·碎屑", test:p=>p.mult<0.5},
+    {n:"·凡品", test:p=>p.mult<1.0},
+    {n:"·精工", test:p=>p.mult<2.0},
+    {n:"·上品", test:p=>p.mult<5.0},
+    {n:"·神铸", test:p=>p.mult<10},
+    {n:"·绝世", test:p=>p.mult>=10},
+    {n:"·双生", test:p=>(p.affixes||[]).length>=2},
+    {n:"·三相", test:p=>(p.affixes||[]).length>=3},
+    {n:"·灵巧", test:p=>p.attrs&&p.attrs.atkSpd>=1.8},
+    {n:"·精准", test:p=>p.attrs&&p.attrs.crit>=50},
+  ];
+  function pickName(p){
+    const a=p.attrs||computeAttrs(p.gemQ||1,p.oreLv||1,0,0,0,0);
+    const pp=Object.assign({},p,{attrs:a});
+    const pre=(PREFIX.find(x=>x.test(pp))||{n:""}).n;
+    // 基础名：按 (装备等级 + mult×10) 联合分桶（增加变化）
+    const lv=starOf(pp);                                  // 1~100
+    const m=p.mult!=null?p.mult:1;
+    const seed=Math.floor((lv + Math.log10(m)*15))%15;
+    const idx=(seed+15)%15;
+    const base=BASE_NAMEs[idx];
+    const suf=(SUFFIX.find(x=>x.test(pp))||{n:""}).n;
+    return (pre+base+suf).trim();
+  }
+
+  // 合成（支持批量：1/10/100，更大随机性 + 词缀）
+  function craft(){
+    const N=st.craftBatch;
+    const g=bestGemTier(), o=bestOreLv();
+    if(!g||!o){hint("宝石或矿石不足");return;}
+    // 检查可合成数量（受宝石/矿石库存限制）
+    const haveG=st.gems[g]||0, haveO=st.ores[o]||0;
+    const can=Math.min(N,haveG,haveO);
+    if(can<=0){hint("宝石或矿石不足");return;}
+    if(can<N)hint("材料只够做 "+can+" 把");
+    let made=0, sold=0, withAffix=0;
+    let bestPick=null;
+    const madeNames=[];
+    for(let i=0;i<can;i++){
+      st.gems[g]--; if(st.gems[g]<=0)delete st.gems[g];
+      st.ores[o]--; if(st.ores[o]<=0)delete st.ores[o];
+      // 基础属性：柄/头/连接质量先按 scale 算
+      const scale=(g+o)*5+st.craftLv*0.6;
+      // 锻造等级：连接质量浮动从 ±25 收窄到 ±max(2, 25-forgeLv*0.5)，下限从 30 抬到 30+forgeLv
+      const connJitter=Math.max(2, 25 - st.forgeLv*0.5);
+      const connFloor=Math.min(95, 30+st.forgeLv);
+      const connCeil=Math.min(99+st.luckyLv, 99+st.luckyLv);   // 运气突破 99 上限
+      const baseConn=clamp(50+g*10+st.craftLv*2+ri(-connJitter,connJitter), connFloor, connCeil);
+      // 攻击浮动：log-uniform（名望抬下限、压缩低端范围；名将出品提高高 mult 概率）
+      const lo=clamp(0.1+st.fameLv*0.005, 0.1, 0.95);    // 名望越高，下限越接近 1
+      const hi=10;
+      // 偏置：legend 等级越高越倾向 logUniform 取高值（pow(m, 1/(1+lv*0.1))）
+      let m1=logUniform(lo, hi);
+      if(st.legendLv>0){
+        // 把 m 偏向 1+：m^0.5...^0.2（legendLv 大时更大偏置）
+        const skew=Math.pow(1/(1+st.legendLv*0.1), m1<=1?0:0);   // 仅对 >1 段做上偏
+        m1 = m1<=1 ? m1 : 1 + (m1-1)*Math.pow(1+st.legendLv*0.15, 1.3);
+      }
+      const mult=clamp(m1, lo, hi);
+      const handle=scale*0.8*mult;
+      const head=scale*1.4*mult;
+      const conn=baseConn;
+      const attack=Math.round(computeAtk(g,o,st.craftLv,handle,head,conn));
+      const total=handle+head, quality=total*conn/100;
+      const attrs=computeAttrs(g,o,st.craftLv,st.gemLv,st.oreLv,conn);
+      const pick={id:st.pickSeq++,handle:+handle.toFixed(1),head:+head.toFixed(1),conn:Math.round(conn),
+        total:+total.toFixed(1),quality:+quality.toFixed(1),attack,gemQ:g,oreLv:o,attrs,affixes:[],mult:+mult.toFixed(2)};
+      // 词缀：基础 15%；名望 +0.5%/级；最多 3 条（名将出品 +1 容量）
+      const affixChance=0.15+st.craftLv*0.01+st.fameLv*0.005;
+      const maxAffix=2+st.legendLv;
+      const r=Math.random();
+      const affixCount = r<0.05+st.legendLv*0.02 ? Math.min(maxAffix, 3)
+                       : r<0.05 ? 2
+                       : r<affixChance ? 1 : 0;
+      const used=new Set();
+      for(let k=0;k<affixCount;k++){
+        const pool=AFFIXES.filter((_,idx)=>!used.has(idx));
+        if(!pool.length)break;
+        const a=pool[Math.floor(Math.random()*pool.length)];
+        used.add(AFFIXES.indexOf(a));
+        a.mod(pick);
+        pick.affixes.push(a.n);
+        withAffix++;
+      }
+      // 自动命名
+      pick.name=pickName(pick);
+      // 自动出售低攻镐子（严格小于当前装备攻击）
+      if(st.autoSell && st.equip && attack < st.equip.attack){
+        const v=pickSellValue(pick); st.coins+=v; sold+=v;
+      }else{
+        st.picks.push(pick);
+        if(!bestPick || attack>bestPick.attack) bestPick=pick;
+        madeNames.push(pick.name);
+        made++;
+      }
+    }
+    // 批量做的最强一把自动装备（比当前装备强才换）
+    if(bestPick && (!st.equip || bestPick.attack>st.equip.attack)) st.equip=bestPick;
+    st.maxAtk=Math.max(st.maxAtk, bestPick?bestPick.attack:0);
+    if(sold>0) hint("🔨 ×"+can+"：入仓 "+made+" 把，自动出售 "+(can-made)+" 把 +🪙 "+fmt(sold)+(withAffix>0?("，✨ "+withAffix+" 条词缀"):""));
+    else{
+      const m2=bestPick?bestPick.mult:1;
+      const t2=m2>=5?"🌟神作":m2>=2?"✨优秀":m2>=0.5?"普通":m2>=0.2?"次品":"💀垃圾";
+      hint("🔨 ×"+can+" 合成完成"+made+" 把，最强 "+(bestPick?(t2+" 攻击 "+fmt(bestPick.attack)+(bestPick.affixes.length?("（✨"+bestPick.affixes.join("/")+"）"):"")):""));
+    }
+    render(); save();
+  }
+
+  // 装备 / 出售镐子
+  function equipPick(id){
+    const p=st.picks.find(x=>x.id===id); if(!p)return;
+    st.equip=p; hint("已装备 攻击 "+p.attack); render(); save();
+  }
+  function sellPick(id){
+    const i=st.picks.findIndex(x=>x.id===id); if(i<0)return;
+    const p=st.picks[i];
+    st.coins+=pickSellValue(p);
+    st.picks.splice(i,1);
+    if(st.equip===p)st.equip=null;
+    hint("出售镐子 +🪙 "+fmt(pickSellValue(p))); render(); save();
+  }
+  function toggleAutoSell(){
+    st.autoSell=!st.autoSell;
+    if(st.autoSell && st.equip){
+      let sold=0;
+      const ref=st.equip.attack;
+      st.picks=st.picks.filter(p=>{
+        if(p.attack<ref){ if(st.equip===p)st.equip=null; st.coins+=pickSellValue(p); sold+=pickSellValue(p); return false; }
+        return true;
+      });
+      if(sold>0)hint("🤖 清理低攻镐子 +🪙 "+fmt(sold));
+    }
+    render(); save();
+  }
+
+  // 出售
+  function sellOre(lv){
+    const c=st.ores[lv]; if(!c)return;
+    st.coins+=c*lv*8; delete st.ores[lv]; render(); save();
+  }
+  // 一键出售全部矿石
+  function sellAllOre(){
+    let total=0, count=0;
+    for(const k in st.ores){ total += st.ores[k]*k*8; count += st.ores[k]; }
+    if(total<=0){hint("没有可出售的矿石");return;}
+    if(!confirm("确认出售全部 "+fmt(count)+" 个矿石，获得 🪙 "+fmt(total)+" 金币？"))return;
+    st.coins += total;
+    st.ores = {};
+    hint("💰 出售 "+fmt(count)+" 个矿石 +🪙 "+fmt(total));
+    render(); save();
+  }
+  function buyUp(which){
+    const key2lv={craft:st.craftLv,drop:st.dropLv,gem:st.gemLv,ore:st.oreLv,fame:st.fameLv,forge:st.forgeLv,legend:st.legendLv,lucky:st.luckyLv};
+    const key2mult={gem:1.4,ore:1.4,fame:1.8,forge:1.6,legend:2.0,lucky:1.7};
+    const lv=key2lv[which];
+    const cost=Math.ceil(craftCost(lv)*(key2mult[which]||1));
+    if(st.coins<cost){hint("金币不足");return;}
+    st.coins-=cost;
+    if(which==="craft"){st.craftLv++; hint("强化合成 → Lv."+st.craftLv+"（攻击 ×"+(1+st.craftLv*0.12).toFixed(2)+"）");}
+    else if(which==="drop"){st.dropLv++; hint("提升掉落 → Lv."+st.dropLv+"（掉宝率 "+(gemChance()*100).toFixed(1)+"%）");}
+    else if(which==="gem"){st.gemLv++; hint("强化宝石 → Lv."+st.gemLv+"（暴击率提升）");}
+    else if(which==="ore"){st.oreLv++; hint("强化矿石 → Lv."+st.oreLv+"（攻速提升）");}
+    else if(which==="fame"){st.fameLv++; hint("名望 → Lv."+st.fameLv+"（词缀率 +0.5%，下限 +0.5%）");}
+    else if(which==="forge"){st.forgeLv++; hint("锻造 → Lv."+st.forgeLv+"（连质量浮动收窄 ±"+Math.max(2,25-st.forgeLv*0.5).toFixed(1)+"）");}
+    else if(which==="legend"){st.legendLv++; hint("名将出品 → Lv."+st.legendLv+"（高 mult 概率 +2%，词缀数 +1）");}
+    else if(which==="lucky"){st.luckyLv++; hint("运气 → Lv."+st.luckyLv+"（连质量上限 "+(99+st.luckyLv)+"）");}
+    render(); save();
+  }
+
+  // 渲染
+  function render(){
+    const tg=bestGemTier(), to=bestOreLv();
+    let totGem=0; for(const k in st.gems)totGem+=st.gems[k];
+    $("#hGem").textContent=tg?(gemAt(tg).e+"×"+fmt(totGem)):"0";
+    $("#hCoin").textContent=fmt(st.coins);
+    $("#hAtk").textContent=st.equip?fmt(st.equip.attack)+"·"+fmt(pickDPS(st.equip)):"0";
+
+    // 镐子卡
+    const pk=$("#pkCard");
+    if(st.equip){
+      const e=st.equip, lv=starOf(e);
+      const a=e.attrs || computeAttrs(e.gemQ,e.oreLv,0,0,0,0);
+      const dps=pickDPS(e);
+      const m=e.mult!=null?e.mult:1;
+      const tier=m>=5?"🌟神作":m>=2?"✨优秀":m>=0.5?"普通":m>=0.2?"次品":"💀垃圾";
+      const tierColor=m>=5?"var(--gold)":m>=2?"var(--good)":m>=0.5?"var(--sub)":m>=0.2?"var(--bad)":"var(--bad)";
+      const lvColor=lv>=8?"var(--gold)":lv>=6?"var(--accent-d)":lv>=4?"var(--ink)":"var(--sub)";
+      pk.innerHTML=`<div class="pk">
+        <div style="display:flex;justify-content:space-between;align-items:flex-end">
+          <div>
+            <div class="row" style="font-size:12px;color:var(--sub)">${e.name||pickName(e)} · <span style="color:${tierColor}">${tier} (×${m})</span></div>
+            <div class="big">⚔️ ${fmt(e.attack)}</div>
+          </div>
+          <div class="lv-badge" style="background:${lvColor}">Lv.${lv}</div>
+        </div>
+        <div class="row"><span class="lab">手柄 / 镐头</span><span class="val">${fmt(e.handle)} / ${fmt(e.head)}</span></div>
+        <div class="row"><span class="lab">连接质量</span><span class="val">${e.conn}%</span></div>
+        <div class="bar"><i style="width:${e.conn}%"></i></div>
+        <div class="attr-grid">
+          <div class="ac"><div class="ak">暴击率</div><div class="av">${a.crit.toFixed(0)}%</div></div>
+          <div class="ac"><div class="ak">暴击伤害</div><div class="av">${a.critDmg}%</div></div>
+          <div class="ac"><div class="ak">攻击速度</div><div class="av">${a.atkSpd}/s</div></div>
+          <div class="ac"><div class="ak">宝石加成</div><div class="av">${fmt(a.gemBonus)}</div></div>
+          <div class="ac"><div class="ak">矿石加成</div><div class="av">${fmt(a.oreBonus)}</div></div>
+          <div class="ac"><div class="ak">DPS</div><div class="av" style="color:var(--accent-d)">${fmt(dps)}</div></div>
+        </div>
+      </div>`;
+      $("#dig").disabled=false;
+    }else{
+      pk.innerHTML=`<div class="empty">还没有镐子<br><span style="font-size:13px">去「合成」用 1 宝石 + 1 矿石 做一把</span></div>`;
+      $("#dig").disabled=true;
+    }
+
+    // 矿脉难度（每个矿脉属性不同）
+    const V=currentVein();
+    $("#mineName").textContent=V.e+" "+V.n;
+    let totOre=0; for(const k in st.ores)totOre+=st.ores[k];
+    $("#oreTotal").textContent="🪨 矿石 "+fmt(totOre);
+    const stars=V.def<=0?0:clamp(Math.round(Math.log10(V.def+1)*1.5),0,5);
+    let diff="难度 <span style=\"color:var(--gold)\">"+"★".repeat(stars)+"☆".repeat(5-stars)+"</span> · 防御 "+fmt(V.def);
+    if(V.def>0){
+      const eff=clamp(st.equip?st.equip.attack/(st.equip.attack+V.def):0,0,1);
+      diff+=" · 效率 <b style=\"color:"+(eff<0.5?"var(--bad)":"var(--good)")+"\">"+Math.round(eff*100)+"%</b>";
+    }
+    if(st.equip && st.equip.attack<V.def)diff+=" · <span style=\"color:var(--bad)\">⚠️攻击不足</span>";
+    // 6 维防御副标题
+    diff+=`<div class="diff-sub">🛡️ 护甲 ${fmt(V.arm)} · 格挡 ${V.blk}% · 闪避 ${V.eva}% · 抗性 ${V.res}% · 攻速惩罚 -${V.spdPenalty}%</div>`;
+    $("#diffTag").innerHTML=diff;
+    const mc=$("#mineChips"); mc.innerHTML="";
+    // 矿脉 1~180：每 10 级映射回 18 种基础矿脉，+10 加一个"强化"后缀
+    const mineTotal=180;
+    for(let L=1;L<=Math.min(mineTotal, st.mineMax);L++){
+      const baseIdx=((L-1)%VEINS.length);   // 0..17
+      const tier=Math.floor((L-1)/VEINS.length);  // 0..9
+      const v=VEINS[baseIdx];
+      const c=document.createElement("button");
+      c.className="chip"+(L===st.mineLv?" on":"");
+      c.textContent=v.e+" "+v.n + (tier?('+'+tier):'');
+      c.style.flex="none"; c.style.whiteSpace="nowrap"; c.style.cursor="pointer"; c.style.border="1px solid var(--line)";
+      c.style.background=L===st.mineLv?"var(--accent)":"#fff";
+      c.style.color=L===st.mineLv?"#fff":"var(--ink)";
+      c.addEventListener("click",()=>{st.mineLv=L; render(); save();});      mc.appendChild(c);
+    }
+    if(st.mineMax>=180){
+      $("#conquestText").textContent="已征服全部矿脉（180 级）";
+      $("#conquestBar").style.width="100%";
+      $("#conquestBar").style.background="linear-gradient(90deg,var(--gold),var(--accent-d))";
+      $("#conquestHint").textContent="👑 你已经站在矿界之巅！";
+    }else{
+      const got=st.veinProgress[st.mineLv]||0, want=V.target;
+      const pct=clamp(got/want*100,0,100);
+      const eff2=st.equip?st.equip.attack/(st.equip.attack+V.def):0;
+      const readyEff=eff2>=WIN_EFF;
+      $("#conquestText").textContent=fmt(got)+" / "+fmt(want);
+      $("#conquestBar").style.width=pct+"%";
+      $("#conquestBar").style.background=readyEff
+        ?"linear-gradient(90deg,var(--good),#5fcb78))"
+        :"linear-gradient(90deg,var(--accent),var(--accent-d))";
+      $("#conquestHint").innerHTML = got>=want
+        ? (readyEff ? "<b style='color:var(--good)'>已可攻打！再挖一次自动突破</b>"
+                    : "<b style='color:var(--bad)'>进度已满，但镐子效率仅 "+(eff2*100).toFixed(0)+"%，做出攻击更高的镐子再突破</b>")
+        : "累计挖出 <b>"+fmt(want)+"</b> 个该矿矿石，且镐子效率 ≥ "+(WIN_EFF*100)+"% 时，<b>自动解锁</b>下一矿脉";
+    }
+
+    // 合成选择
+    $("#cGem").textContent=tg?(gemAt(tg).e+" "+gemAt(tg).n+" ×"+fmt(st.gems[tg]||0)):"无";
+    $("#cGem").style.color=tg?gemAt(tg).c:"";
+    $("#cOre").textContent=to?"Lv."+to+" ×"+fmt(st.ores[to]||0):"无";
+    const can=Math.min(st.craftBatch,st.gems[tg]||0,st.ores[to]||0);
+    $("#craftBtn").textContent="合成 "+fmt(can)+" 把镐子"+(st.craftBatch>1?("（要 🪙 0）"):"");
+    $("#craftBtn").disabled=!(tg&&to&&can>0);
+    document.querySelectorAll(".batch").forEach(b=>{
+      b.classList.toggle("on", +b.dataset.b===st.craftBatch);
+    });
+
+    // 仓库 —— 镐子列表
+    $("#pickCount").textContent=st.picks.length+" 把";
+    $("#thRefAtk").textContent=st.equip?fmt(st.equip.attack):"—";
+    $("#thHint").textContent=st.equip
+      ?("开启后，合成的镐子 / 已存在的镐子若攻击低于 "+fmt(st.equip.attack)+" 会自动卖成 🪙 金币")
+      :"当前没有装备镐子，关闭状态。合成第一把镐子后开启此开关才会清理低攻镐子";
+    $("#swAutoSell").classList.toggle("on",st.autoSell);
+    const pl=$("#pickList"); pl.innerHTML="";
+    if(st.picks.length===0){
+      pl.innerHTML='<div class="empty">暂无镐子，去「合成」做一把</div>';
+    }else{
+      st.picks.forEach(p=>{ if(!p.name) p.name=pickName(p);
+        const isEq=st.equip===p, lv=starOf(p);
+        const m=p.mult!=null?p.mult:1;
+        const tier=m>=5?"🌟":m>=2?"✨":m>=0.5?"·":m>=0.2?"⚠️":"💀";
+        const a=p.attrs || computeAttrs(p.gemQ,p.oreLv,0,0,0,0);
+        const lvColor=lv>=8?"var(--gold)":lv>=6?"var(--accent-d)":lv>=4?"var(--ink)":"var(--sub)";
+        const d=document.createElement("div");
+        d.className="li"; d.style.flexDirection="column"; d.style.alignItems="stretch"; d.style.gap="7px";
+        d.innerHTML=`
+          <div style="display:flex;align-items:center;gap:8px">
+            <div class="ic" style="color:var(--accent-d)">⛏️</div>
+            <div class="nm" style="flex:1">
+              <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+                <span style="font-weight:800;color:var(--ink)">${p.name||pickName(p)}</span>
+                <span>⚔️ ${fmt(p.attack)}</span>
+                <span style="color:var(--accent-d)">DPS ${fmt(pickDPS(p))}</span>
+                <span style="color:${lvColor};font-size:11px;font-weight:800">Lv.${lv}</span>
+                <span style="font-size:11px">${tier}×${m}</span>
+                ${isEq?'<span style="font-size:11px;color:#fff;background:var(--good);border-radius:99px;padding:1px 8px;font-weight:700">已装备</span>':''}
+              </div>
+              <small style="display:block;line-height:1.6;color:var(--sub)">
+                暴 ${a.crit.toFixed(0)}% · 暴伤 ${a.critDmg}% · 速 ${a.atkSpd}/s · 连 ${p.conn}%<br>
+                💎 宝加 ${fmt(a.gemBonus)} · 🪨 矿加 ${fmt(a.oreBonus)}${(p.affixes&&p.affixes.length)?' · ✨ '+p.affixes.join(' / '):''}
+              </small>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px">
+            ${isEq?'':'<button class="sell" data-eq="'+p.id+'" style="background:var(--accent)">装备</button>'}
+            <button class="sell" data-sl="${p.id}">出售 +🪙 ${fmt(pickSellValue(p))}</button>
+          </div>`;
+        const eqb=d.querySelector('[data-eq]'); if(eqb)eqb.onclick=()=>equipPick(p.id);
+        d.querySelector('[data-sl]').onclick=()=>sellPick(p.id);
+        pl.appendChild(d);
+      });
+    }
+
+    // 仓库 —— 宝石
+    const gl=$("#gemList"); gl.innerHTML="";
+    let anyG=false;
+    for(let t=160;t>=1;t--){ if(st.gems[t]){anyG=true;
+      // 16 阶之外按 (t-1)%16+1 取（环形映射），加 + 强化后缀
+      const base=((t-1)%16)+1;
+      const boost=Math.floor((t-1)/16);   // 0..9
+      const g=GEM[base];
+      const d=document.createElement("div");d.className="li";
+      d.innerHTML=`<div class="ic" style="color:${g.c}">${g.e}</div>
+        <div class="nm"><span class="gem-tier">T${t}</span>${g.n}${boost?'<sup style="color:var(--gold);font-size:10px;margin-left:3px">+' + boost + '</sup>':''}<small>用于合成镐子</small></div>
+        <div class="ct">×${fmt(st.gems[t])}</div>`;
+      gl.appendChild(d);}}
+    if(!anyG)gl.innerHTML='<div class="empty">暂无宝石，去挖矿掉落</div>';
+
+    const ol=$("#oreList"); ol.innerHTML="";
+    let anyO=false, totOreCnt=0, totOreVal=0;
+    Object.keys(st.ores).map(Number).sort((a,b)=>b-a).forEach(l=>{ if(st.ores[l]){anyO=true; totOreCnt+=st.ores[l]; totOreVal+=st.ores[l]*l*8;
+      const d=document.createElement("div");d.className="li";
+      d.innerHTML=`<div class="ic">🪨</div>
+        <div class="nm">矿石 Lv.${l}<small>出售价 🪙 ${l*8}/个</small></div>
+        <div class="ct">×${fmt(st.ores[l])}</div>
+        <button class="sell" data-l="${l}">出售</button>`;
+      d.querySelector(".sell").onclick=()=>sellOre(l);
+      ol.appendChild(d);}});
+    // 一键出售按钮
+    const sa=$("#sellAllOre");
+    if(sa){
+      if(anyO){
+        sa.textContent="💰 一键出售 "+fmt(totOreCnt)+" 个（🪙 "+fmt(totOreVal)+"）";
+        sa.disabled=false; sa.style.opacity="1";
+      }else{
+        sa.textContent="💰 一键出售全部矿石（空）";
+        sa.disabled=true; sa.style.opacity=".5";
+      }
+    }
+    if(!anyO)ol.innerHTML='<div class="empty">暂无矿石，去挖矿获取</div>';
+
+    // 升级 —— 8 条；每条显示当前效果；预览算 DPS（6 维综合）
+    $("#lvCraft").textContent="Lv."+st.craftLv;
+    $("#lvDrop").textContent="Lv."+st.dropLv;
+    $("#lvGem").textContent="Lv."+st.gemLv;
+    $("#lvOre").textContent="Lv."+st.oreLv;
+    $("#lvFame").textContent="Lv."+st.fameLv;
+    $("#lvForge").textContent="Lv."+st.forgeLv;
+    $("#lvLegend").textContent="Lv."+st.legendLv;
+    $("#lvLucky").textContent="Lv."+st.luckyLv;
+    $("#dsCraft").innerHTML="攻击倍率 <b>×"+(1+st.craftLv*0.12).toFixed(2)+"</b> · 重量 +"+(st.craftLv*0.6).toFixed(1)+" · 品质 +"+(st.craftLv*2)+"%";
+    const gc=gemChance()*100;
+    $("#dsDrop").innerHTML="掉宝率 <b>"+gc.toFixed(1)+"%</b> · 矿石等级 +"+(st.dropLv*0.3*currentVein().drop).toFixed(1)+" · 宝石品质 +"+(st.dropLv*0.2*currentVein().drop).toFixed(1);
+    $("#dsGem").innerHTML="暴击率 <b>+"+(st.gemLv*2).toFixed(0)+"%</b> · 宝石加成 <b>+"+(st.gemLv*5)+"</b> · 暴伤 +"+(st.gemLv*1.5).toFixed(1)+"%";
+    $("#dsOre").innerHTML="攻速 <b>+"+(st.oreLv*0.02).toFixed(2)+"</b> · 矿石加成 <b>+"+(st.oreLv*4)+"</b> · 物理 +"+(st.oreLv*8)+"";
+    $("#dsFame").innerHTML="词缀率 <b>+"+(st.fameLv*0.5).toFixed(1)+"%</b> · 攻击下限 ×<b>"+(0.1+st.fameLv*0.005).toFixed(2)+"</b>（垃圾越来越少）";
+    const jitter=Math.max(2, 25-st.forgeLv*0.5);
+    $("#dsForge").innerHTML="连质量浮动 ±<b>"+jitter.toFixed(1)+"</b>（之前 25）· 下限 <b>"+Math.min(95,30+st.forgeLv)+"</b>（之前 30）";
+    $("#dsLegend").innerHTML="高 mult 概率 <b>+"+(st.legendLv*2).toFixed(0)+"%</b> · 词缀数上限 <b>"+(2+st.legendLv)+"</b>";
+    $("#dsLucky").innerHTML="连质量上限 <b>"+(99+st.luckyLv)+"</b>（运气破百）";
+    // 下一把 DPS 预览（用当前最好的宝石/矿石 + 4 条升级 + 期望值 conn=70）
+    const tg2=bestGemTier(), to2=bestOreLv();
+    if(tg2 && to2){
+      const A=computeAttrs(tg2,to2,st.craftLv,st.gemLv,st.oreLv,70);
+      const avgAtk=Math.round(computeAtk(tg2,to2,st.craftLv,(tg2+to2)*5*0.8,(tg2+to2)*5*1.4,70));
+      const dps=Math.round(avgAtk*A.atkSpd*(1+A.crit/100*(A.critDmg/100-1)));
+      $("#prevDps").textContent=fmt(dps)+" DPS（攻击 "+fmt(avgAtk)+"）";
+      $("#prevAttr").textContent="暴击 "+A.crit.toFixed(0)+"% · 暴伤 "+A.critDmg+"% · 攻速 "+A.atkSpd+"次/秒 · 宝石加成 "+fmt(A.gemBonus)+" · 矿石加成 "+fmt(A.oreBonus);
+    }else{
+      $("#prevDps").textContent="—"; $("#prevAttr").textContent="先去挖矿获得宝石和矿石";
+    }
+    const cc=craftCost(st.craftLv), dc=craftCost(st.dropLv);
+    const gc2=Math.ceil(craftCost(st.gemLv)*1.4), oc=Math.ceil(craftCost(st.oreLv)*1.4);
+    const fm=Math.ceil(craftCost(st.fameLv)*1.8), fr=Math.ceil(craftCost(st.forgeLv)*1.6);
+    const lg=Math.ceil(craftCost(st.legendLv)*2.0), lk=Math.ceil(craftCost(st.luckyLv)*1.7);
+    $("#buyCraft").textContent=fmt(cc); $("#buyCraft").disabled=st.coins<cc;
+    $("#buyDrop").textContent=fmt(dc);  $("#buyDrop").disabled=st.coins<dc;
+    $("#buyGem").textContent=fmt(gc2);   $("#buyGem").disabled=st.coins<gc2;
+    $("#buyOre").textContent=fmt(oc);   $("#buyOre").disabled=st.coins<oc;
+    $("#buyFame").textContent=fmt(fm);   $("#buyFame").disabled=st.coins<fm;
+    $("#buyForge").textContent=fmt(fr);  $("#buyForge").disabled=st.coins<fr;
+    $("#buyLegend").textContent=fmt(lg); $("#buyLegend").disabled=st.coins<lg;
+    $("#buyLucky").textContent=fmt(lk);  $("#buyLucky").disabled=st.coins<lk;
+
+    // 抽屉
+    $("#sCoin").textContent=fmt(st.coins); $("#sGem").textContent=fmt(totGem);
+    $("#sGemTier").textContent=tg?(gemAt(tg).e+" "+gemAt(tg).n):"—";
+    $("#sMine").textContent=fmt(st.mineCount); $("#sAtk").textContent=fmt(st.maxAtk);
+    // 最高 DPS 镐子
+    let bestDps=0;
+    st.picks.forEach(p=>{ const d=pickDPS(p); if(d>bestDps)bestDps=d; });
+    $("#sDps").textContent=fmt(bestDps);
+  }
+
+  // 事件
+  $("#dig").addEventListener("pointerdown",e=>{e.preventDefault();mine();});
+  $("#swAuto").addEventListener("click",()=>{
+    st.auto=!st.auto; $("#swAuto").classList.toggle("on",st.auto);
+    if(st.auto&&!st.equip){st.auto=false;$("#swAuto").classList.remove("on");hint("先合成镐子");}
+  });
+  $("#craftBtn").addEventListener("click",craft);
+  document.querySelectorAll(".batch").forEach(b=>b.addEventListener("click",()=>{
+    st.craftBatch=+b.dataset.b; render(); save();
+  }));
+  $("#buyCraft").addEventListener("click",()=>buyUp("craft"));
+  $("#buyDrop").addEventListener("click",()=>buyUp("drop"));
+  $("#buyGem").addEventListener("click",()=>buyUp("gem"));
+  $("#buyOre").addEventListener("click",()=>buyUp("ore"));
+  $("#buyFame").addEventListener("click",()=>buyUp("fame"));
+  $("#buyForge").addEventListener("click",()=>buyUp("forge"));
+  $("#buyLegend").addEventListener("click",()=>buyUp("legend"));
+  $("#buyLucky").addEventListener("click",()=>buyUp("lucky"));
+  $("#swAutoSell").addEventListener("click",toggleAutoSell);
+  // 已改为自动解锁：累计进度达标 + 效率达标 → 下一挖自动跳到下一矿脉
+
+  document.querySelectorAll(".nav button").forEach(b=>b.addEventListener("click",()=>{
+    document.querySelectorAll(".nav button").forEach(x=>x.classList.remove("on"));
+    document.querySelectorAll(".tab").forEach(x=>x.classList.remove("on"));
+    b.classList.add("on"); $("#"+b.dataset.t).classList.add("on");
+  }));
+
+  // 抽屉
+  $("#gear").addEventListener("click",()=>{$("#drawer").classList.add("on");$("#mask").classList.add("on");});
+  $("#closex").addEventListener("click",()=>{$("#drawer").classList.remove("on");$("#mask").classList.remove("on");});
+  $("#mask").addEventListener("click",()=>{$("#drawer").classList.remove("on");$("#mask").classList.remove("on");});
+  $("#saveBtn").addEventListener("click",()=>{save();hint("已保存");});
+  $("#resetBtn").addEventListener("click",()=>{if(confirm("清空所有进度？")){localStorage.removeItem(SAVE);location.reload();}});
+  $("#sellAllOre").addEventListener("click",sellAllOre);
+
+  let ht; function hint(t){const h=$("#hint");h.textContent=t;h.classList.add("on");clearTimeout(ht);ht=setTimeout(()=>h.classList.remove("on"),1300);}
+
+  // 自动挖矿
+  setInterval(()=>{ if(st.auto&&st.equip)mine(); },1000);
+  setInterval(save,5000);
+  window.addEventListener("beforeunload",save);
+
+  render();
+})();
+</script>
+</body>
+</html>
