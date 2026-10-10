@@ -29,7 +29,7 @@
   .chip .v{font-weight:800;font-size:17px;line-height:1}
   .chip .k{font-size:11px;color:var(--sub);margin-top:3px}
   /* 内容 */
-  .body{flex:1;overflow-y:auto;padding:6px 14px 14px}
+  .body{flex:1 1 0;overflow-y:auto;padding:6px 14px 14px;min-height:0;-webkit-overflow-scrolling:touch}
   .tab{display:none;animation:fade .18s} .tab.on{display:block}
   @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1}}
   .card{background:var(--card);border-radius:16px;padding:15px;box-shadow:var(--shadow);margin-bottom:12px}
@@ -308,16 +308,6 @@
         </div>
       </div>
     </div>
-  </div>
-
-  <div class="nav">
-    <button class="on" data-t="tMine"><span class="e">⛏️</span>挖矿</button>
-    <button data-t="tCraft"><span class="e">🔨</span>合成</button>
-    <button data-t="tInv"><span class="e">🎒</span>仓库</button>
-    <button data-t="tUp"><span class="e">📈</span>升级</button>
-    <button data-t="tRebirth"><span class="e">🌀</span>重生</button>
-  </div>
-</div>
 
     <!-- 重生 -->
     <div class="tab" id="tRebirth">
@@ -353,6 +343,16 @@
         <div id="rbPreview" style="font-size:13px;line-height:1.7"></div>
       </div>
     </div>
+  </div>
+
+  <div class="nav">
+    <button class="on" data-t="tMine"><span class="e">⛏️</span>挖矿</button>
+    <button data-t="tCraft"><span class="e">🔨</span>合成</button>
+    <button data-t="tInv"><span class="e">🎒</span>仓库</button>
+    <button data-t="tUp"><span class="e">📈</span>升级</button>
+    <button data-t="tRebirth"><span class="e">🌀</span>重生</button>
+  </div>
+</div>
 
 <div class="mask" id="mask"></div>
 <div class="drawer" id="drawer">
