@@ -369,25 +369,40 @@
 (function(){
   const SAVE="mine_craft_v1";
   // 16 阶宝石（从低到高；颜色渐变 + emoji）
+  // 16 种宝石（每个有专属主属性 + 越高级越全面）
+  // stats 数组：主属性在前，越高级宝石含越多属性（低阶 1 项 → 高阶 6 项）
+  // k 取值：phys 物理 / crit 暴击 / critDmg 暴伤 / atkSpd 攻速 / gem 宝石加成 / ore 矿石加成
   const GEM=[
     null,
-    {n:"普通宝石",   e:"⚪", c:"#bdbdbd"},
-    {n:"精致宝石",   e:"🟢", c:"#5bbf6a"},
-    {n:"翠绿宝石",   e:"💚", c:"#27ae60"},
-    {n:"海洋宝石",   e:"🔵", c:"#4a90d9"},
-    {n:"深蓝宝石",   e:"💙", c:"#1f4fbf"},
-    {n:"紫晶宝石",   e:"🟣", c:"#9b59b6"},
-    {n:"暗紫宝石",   e:"🟪", c:"#6c3a8a"},
-    {n:"玫瑰宝石",   e:"🌸", c:"#e85a8a"},
-    {n:"绯红宝石",   e:"🔴", c:"#c0392b"},
-    {n:"琥珀宝石",   e:"🟠", c:"#e08a3c"},
-    {n:"黄金宝石",   e:"🟡", c:"#e6b422"},
-    {n:"月白宝石",   e:"🌕", c:"#f4d35e"},
-    {n:"幽绿宝石",   e:"🐉", c:"#16a085"},
-    {n:"幻影宝石",   e:"👁️",c:"#34495e"},
-    {n:"星辉宝石",   e:"⭐", c:"#7df0ff"},
-    {n:"创世宝石",   e:"🌌", c:"#ff5ff5"},
+    {n:"普通宝石",  e:"⚪", c:"#bdbdbd", stats:[{k:"phys",v:3}]},
+    {n:"翠绿宝石",  e:"🟢", c:"#5bbf6a", stats:[{k:"phys",v:4},{k:"crit",v:0.5}]},
+    {n:"海洋宝石",  e:"🔵", c:"#4a90d9", stats:[{k:"crit",v:1}]},
+    {n:"深蓝宝石",  e:"💙", c:"#1f4fbf", stats:[{k:"crit",v:1.5},{k:"critDmg",v:2}]},
+    {n:"紫晶宝石",  e:"🟣", c:"#9b59b6", stats:[{k:"critDmg",v:3}]},
+    {n:"暗紫宝石",  e:"🟪", c:"#6c3a8a", stats:[{k:"atkSpd",v:0.02}]},
+    {n:"玫瑰宝石",  e:"🌸", c:"#e85a8a", stats:[{k:"atkSpd",v:0.03},{k:"phys",v:3}]},
+    {n:"绯红宝石",  e:"🔴", c:"#c0392b", stats:[{k:"crit",v:1.5},{k:"atkSpd",v:0.02}]},
+    {n:"琥珀宝石",  e:"🟠", c:"#e08a3c", stats:[{k:"ore",v:6}]},
+    {n:"黄金宝石",  e:"🟡", c:"#e6b422", stats:[{k:"ore",v:8},{k:"gem",v:4}]},
+    {n:"月白宝石",  e:"🌕", c:"#f4d35e", stats:[{k:"gem",v:6}]},
+    {n:"幽绿宝石",  e:"🐉", c:"#16a085", stats:[{k:"gem",v:8},{k:"phys",v:4}]},
+    {n:"幻影宝石",  e:"👁️",c:"#34495e", stats:[{k:"phys",v:6},{k:"crit",v:1.2},{k:"ore",v:6}]},
+    {n:"星辉宝石",  e:"⭐", c:"#7df0ff", stats:[{k:"critDmg",v:4},{k:"gem",v:6},{k:"atkSpd",v:0.02}]},
+    {n:"幽冥宝石",  e:"💀",c:"#5d3a3a", stats:[{k:"phys",v:8},{k:"crit",v:1.5},{k:"critDmg",v:3},{k:"ore",v:6}]},
+    {n:"创世宝石",  e:"🌌", c:"#ff5ff5", stats:[{k:"phys",v:12},{k:"crit",v:2},{k:"critDmg",v:5},{k:"atkSpd",v:0.04},{k:"gem",v:10},{k:"ore",v:8}]},
   ];
+  // 每个矿脉掉 2 种宝石（baseIdx 派生）
+  function veinGems(vIdx){
+    const a=(vIdx%16)+1;       // 主产出
+    const c=((vIdx+7)%16)+1;    // 次产出（错开 7）
+    return [a, c];
+  }
+  // 宝石实际产生的等级（高难矿脉产更高 T）
+  function rollGemTierByMine(mineLv){
+    // mineLv 1~18000；T = clamp(1, 16, ceil(mineLv/1200))
+    const t=Math.ceil(mineLv/1200);
+    return clamp(t, 1, 16);
+  }
   // 稀有词缀（合成时小概率追加，使镐子更强力）
   const AFFIXES=[
     {n:"锋利",   desc:"+15% 暴击伤害",      mod:p=>{p.attrs.critDmg=Math.round(p.attrs.critDmg*1.15);}},
@@ -505,11 +520,27 @@
   })();
 
   function rollGemTier(){
+    // 现在宝石按"矿脉等级"派生（1~16 种），每矿脉只产 2 种
+    // 装备宝石等级高的会提升获得高 T 概率
     const eq=st.equip?st.equip.gemQ:1;
     const V=currentVein();
-    // 中心 = 装备宝石与矿脉宝石均值 + 升级加成；最大 1600 阶（×100 over base 16）
-    const center=clamp(Math.round((eq+V.gem)/2 + st.dropLv*0.2*V.drop),1,1600);
-    return clamp(center+ri(-200,200),1,1600);
+    const vTier=rollGemTierByMine(st.mineLv);   // 当前矿脉建议 T
+    const eqTier=Math.min(16, Math.ceil(eq/100)); // 装备等级换算（0~1600 → 1~16）
+    // 80% 走 vTier，20% 走 ±1（不超出矿脉允许范围）；装备等级高时倾向 +1
+    const r=Math.random();
+    let t;
+    if(r<0.7) t=vTier;
+    else if(r<0.85) t=Math.min(16, vTier+1);
+    else t=Math.max(1, vTier-1);
+    return t;
+  }
+  // 返回本矿脉可产的 2 种宝石 id
+  function rollGemKind(){
+    const V=currentVein();
+    const vIdx=((st.mineLv-1)%VEINS.length);
+    const pair=veinGems(vIdx);
+    // 50% 主产，50% 次产
+    return Math.random()<0.5 ? pair[0] : pair[1];
   }
   function rollOreLv(){
     const V=currentVein();
@@ -519,16 +550,17 @@
   function craftCost(lv){return Math.ceil(50*Math.pow(1.5,lv));}
   function gemChance(){
     const V=currentVein();
-    return clamp(0.04+st.dropLv*0.01+(st.equip?st.equip.gemQ*0.004:0),0,0.5)*V.drop*(1+RB.attrs.affix*0.05);
+    // 基础 4%；升级 +1%/级；装备加成；难度系数（mineLv/18000 0~1）；重生 affix
+    const base=clamp(0.04+st.dropLv*0.01+(st.equip?st.equip.gemQ*0.004:0),0,0.5);
+    const diffBoost=0.3*(st.mineLv/18000);   // 难度加成最高 +30%
+    return clamp((base+diffBoost)*(1+RB.attrs.affix*0.05),0,0.95)*V.drop;
   }
   // 当前矿脉：1~180 → 18 种循环
   function currentVein(){ return VEINS[((st.mineLv-1)%VEINS.length)]; }
-  // 1600 阶宝石映射：1~16 → 原表 1~16 阶；17~1600 → 循环 + 强化后缀（boost 0~99）
+  // 16 阶宝石映射（1~16 直接对应，每种有专属属性）
   function gemAt(t){
-    const base=((t-1)%16)+1;
-    const boost=Math.floor((t-1)/16);
-    const g=GEM[base];
-    return {e:g.e, c:g.c, n:g.n + (boost?('+' + boost) : ''), base, boost};
+    const g=GEM[t]||GEM[1];
+    return {e:g.e, c:g.c, n:g.n, t};
   }
   // 攻击公式：重量(手柄+镐头) → 品质 → 攻击。矿石等级越高、宝石越好，攻击越大（指数滚雪球）
   function computeAtk(g,o,craftLv,handle,head,conn){
@@ -537,17 +569,28 @@
     const rbatk=1+RB.attrs.atk*0.05;          // 重生 atk 每点 +5%
     return quality*g*oreMult*(1+craftLv*0.12)*5*rbatk;
   }
-  // 计算 6 维攻击属性（流放之路风格 + 重生加成）
+  // 计算 6 维攻击属性（流放之路风格 + 重生加成 + 宝石专精）
   function computeAttrs(g,o,craftLv,gemLv,oreLv,conn){
     const base=g*5+o*8+craftLv*2;
     const A=RB.attrs;
+    // 宝石专精项累加（g 是宝石 T 1~16）
+    const gem=GEM[g]||GEM[1];
+    let sPhys=0, sCrit=0, sCritDmg=0, sAtkSpd=0, sGem=0, sOre=0;
+    (gem.stats||[]).forEach(s=>{
+      if(s.k==='phys') sPhys=s.v;
+      else if(s.k==='crit') sCrit=s.v;
+      else if(s.k==='critDmg') sCritDmg=s.v;
+      else if(s.k==='atkSpd') sAtkSpd=s.v;
+      else if(s.k==='gem') sGem=s.v;
+      else if(s.k==='ore') sOre=s.v;
+    });
     return {
-      phys:  Math.round(base*3*(1+craftLv*0.10)*(1+gemLv*0.08)*(1+A.atk*0.05)),
-      crit:  clamp(5+gemLv*2+craftLv*0.3+A.crit, 5, 100),                       // 暴击率 %
-      critDmg: Math.round(150+g*15+craftLv*1.5+A.critDmg*0.5),                   // 暴击伤害 %（每点 +0.5%）
-      atkSpd:+(0.8+o*0.02+craftLv*0.02+A.atkSpd*0.01).toFixed(2),               // 攻击速度（次/秒）
-      gemBonus:Math.round((g*10+gemLv*5)*(1+craftLv*0.05)*(1+A.gem*0.05)),      // 宝石加成
-      oreBonus:Math.round((o*8+oreLv*4)*(1+craftLv*0.05)*(1+A.ore*0.05))        // 矿石加成
+      phys:  Math.round((base*3+sPhys*craftLv*2)*(1+craftLv*0.10)*(1+A.atk*0.05)),
+      crit:  clamp(5+sCrit*craftLv+craftLv*0.3+A.crit, 5, 100),                       // 暴击率 %
+      critDmg: Math.round(150+sCritDmg*craftLv*0.5+craftLv*1.5+A.critDmg*0.5),         // 暴击伤害 %
+      atkSpd:+(0.8+o*0.02+sAtkSpd*craftLv*0.3+craftLv*0.02+A.atkSpd*0.01).toFixed(2),// 攻速（次/秒）
+      gemBonus:Math.round((g*10+gemLv*5+sGem*craftLv*0.5)*(1+A.gem*0.05)),             // 宝石加成
+      oreBonus:Math.round((o*8+oreLv*4+sOre*craftLv*0.5)*(1+A.ore*0.05))              // 矿石加成
     };
   }
   // 镐子 DPS（按 6 维综合）
@@ -613,7 +656,7 @@
     popText("+"+fmt(gain)+" 🪨", "var(--accent-d)", 0);
     let gotGem=false;
     if(Math.random()<gemChance()){
-      const t=rollGemTier(); st.gems[t]=(st.gems[t]||0)+1;
+      const t=rollGemKind(); st.gems[t]=(st.gems[t]||0)+1;
       popText(gemAt(t).e+" "+gemAt(t).n+" +1", gemAt(t).c, 46); gotGem=true;
     }
     // 打败判定：进度达标 + 效率达标 → 自动解锁下一级
@@ -1105,14 +1148,15 @@
     // 仓库 —— 宝石
     const gl=$("#gemList"); gl.innerHTML="";
     let anyG=false;
-    for(let t=1600;t>=1;t--){ if(st.gems[t]){anyG=true;
+    for(let t=16;t>=1;t--){ if(st.gems[t]){anyG=true;
       // 16 阶之外按 (t-1)%16+1 取（环形映射），加 + 强化后缀
-      const base=((t-1)%16)+1;
-      const boost=Math.floor((t-1)/16);   // 0..9
-      const g=GEM[base];
+      const g=GEM[t];
+      // 专精项标签
+      const statMap={phys:'⚔️',crit:'🎯',critDmg:'💥',atkSpd:'⚡',gem:'💎',ore:'🪨'};
+      const statText=(g.stats||[]).map(s=>statMap[s.k]||'?').join('·');
       const d=document.createElement("div");d.className="li";
       d.innerHTML=`<div class="ic" style="color:${g.c}">${g.e}</div>
-        <div class="nm"><span class="gem-tier">T${t}</span>${g.n}${boost?'<sup style="color:var(--gold);font-size:10px;margin-left:3px">+' + boost + '</sup>':''}<small>用于合成镐子</small></div>
+        <div class="nm"><span class="gem-tier">T${t}</span>${g.n}<small>专精：${statText}</small></div>
         <div class="ct">×${fmt(st.gems[t])}</div>`;
       gl.appendChild(d);}}
     if(!anyG)gl.innerHTML='<div class="empty">暂无宝石，去挖矿掉落</div>';
