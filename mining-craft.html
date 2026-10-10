@@ -800,7 +800,7 @@
       pick.name=pickName(pick);
       // 自动出售低攻镐子（严格小于当前装备攻击）
       if(st.autoSell && st.equip && attack < st.equip.attack){
-        const v=pickSellValue(pick); addCoinsv; sold+=v;
+        const v=pickSellValue(pick); addCoins(v); sold+=v;
       }else{
         st.picks.push(pick);
         if(!bestPick || attack>bestPick.attack) bestPick=pick;
@@ -828,7 +828,7 @@
   function sellPick(id){
     const i=st.picks.findIndex(x=>x.id===id); if(i<0)return;
     const p=st.picks[i];
-    addCoinspickSellValue(p);
+    addCoins(pickSellValue(p));
     st.picks.splice(i,1);
     if(st.equip===p)st.equip=null;
     hint("出售镐子 +🪙 "+fmt(pickSellValue(p))); render(); save();
@@ -839,7 +839,7 @@
       let sold=0;
       const ref=st.equip.attack;
       st.picks=st.picks.filter(p=>{
-        if(p.attack<ref){ if(st.equip===p)st.equip=null; addCoinspickSellValue(p); sold+=pickSellValue(p); return false; }
+        if(p.attack<ref){ if(st.equip===p)st.equip=null; addCoins(pickSellValue(p)); sold+=pickSellValue(p); return false; }
         return true;
       });
       if(sold>0)hint("🤖 清理低攻镐子 +🪙 "+fmt(sold));
@@ -850,7 +850,7 @@
   // 出售
   function sellOre(lv){
     const c=st.ores[lv]; if(!c)return;
-    addCoinsMath.ceil(c*lv*8*(1+RB.attrs.coin*0.1)); delete st.ores[lv]; render(); save();
+    addCoins(Math.ceil(c*lv*8*(1+RB.attrs.coin*0.1))); delete st.ores[lv]; render(); save();
   }
   // 一键出售全部矿石
   function sellAllOre(){
