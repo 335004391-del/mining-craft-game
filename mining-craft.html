@@ -927,27 +927,55 @@
     return Math.max(0, Math.floor(Math.log10(Math.max(1, total+1))));
   }
   function doRebirth(){
-    if(typeof confirm==="function" && !confirm("🌀 立即重生？\n\n将清空：金币、矿石、宝石、镐子、矿脉进度\n保留：8 条升级 + 属性点\n\n获得 "+pointsFromCoins(st.totalCoinsEver||0)+" 点（基于累计 "+fmt(st.totalCoinsEver||0)+" 金币）"))return;
     const gain=pointsFromCoins(st.totalCoinsEver||0);
-    // 清空游戏进度
-    st.gems={1:1}; st.ores={1:1}; st.coins=0;
-    st.picks=[]; st.equip=null;
-    st.mineLv=1; st.mineMax=1; st.veinProgress={};
-    st.mineCount=0; st.maxAtk=0;
-    st.rebirthCount=(st.rebirthCount||0)+1;
-    // 累计总金币不减（用于持续算下一次点数）；本次累计也算入
-    RB.points = (RB.points||0) + gain;
-    saveRB();
-    if(typeof hint==="function") hint("🌀 重生成功！获得 "+gain+" 点，已自动跳到挖矿 tab");
-    // 切到挖矿 tab
-    try{
-      document.querySelectorAll(".tab").forEach(t=>t.classList.remove("on"));
-      document.querySelectorAll(".nav button").forEach(b=>b.classList.remove("on"));
-      const mine=document.getElementById("tMine"); if(mine) mine.classList.add("on");
-      const navMine=document.querySelector('.nav button[data-t="tMine"]'); if(navMine) navMine.classList.add("on");
-    }catch(e){}
-    if(typeof render==="function") render();
-    if(typeof save==="function") save();
+    const totalCoins=st.totalCoinsEver||0;
+    // 自定义弹窗（避免浏览器 confirm 被屏蔽 + 更友好）
+    const oldMask=document.getElementById("mask");
+    const overlay=document.createElement("div");
+    overlay.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px";
+    const dlg=document.createElement("div");
+    dlg.style.cssText="background:var(--card);border-radius:14px;max-width:360px;width:100%;padding:20px;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.3)";
+    dlg.innerHTML=`
+      <div style="font-size:48px;line-height:1;margin-bottom:10px">🌀</div>
+      <div style="font-weight:800;font-size:16px;margin-bottom:6px">立即重生？</div>
+      <div style="font-size:12px;color:var(--sub);line-height:1.6;margin-bottom:14px">
+        清空：金币、矿石、宝石、镐子、矿脉<br>
+        保留：8 条升级 + 属性点
+      </div>
+      <div style="background:linear-gradient(135deg,#fff7d6,#fde68a);border-radius:10px;padding:10px;margin-bottom:14px">
+        <div style="font-size:11px;color:var(--sub)">基于累计 ${fmt(totalCoins)} 金币</div>
+        <div style="font-size:24px;font-weight:800;color:var(--gold);margin-top:4px">获得 ${gain} ✦ 属性点</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button id="rbCancel" class="btn ghost" style="flex:1;padding:12px">取消</button>
+        <button id="rbConfirm" class="btn" style="flex:1;padding:12px;background:linear-gradient(135deg,var(--gold),var(--accent-d))">确认重生</button>
+      </div>
+    `;
+    overlay.appendChild(dlg);
+    document.body.appendChild(overlay);
+    function close(){ overlay.remove(); }
+    dlg.querySelector("#rbCancel").onclick=close;
+    dlg.querySelector("#rbConfirm").onclick=()=>{
+      close();
+      // 清空游戏进度
+      st.gems={1:1}; st.ores={1:1}; st.coins=0;
+      st.picks=[]; st.equip=null;
+      st.mineLv=1; st.mineMax=1; st.veinProgress={};
+      st.mineCount=0; st.maxAtk=0;
+      st.rebirthCount=(st.rebirthCount||0)+1;
+      RB.points = (RB.points||0) + gain;
+      saveRB();
+      if(typeof hint==="function") hint("🌀 重生成功！获得 "+gain+" 点，已自动跳到挖矿 tab");
+      // 切到挖矿 tab
+      try{
+        document.querySelectorAll(".tab").forEach(t=>t.classList.remove("on"));
+        document.querySelectorAll(".nav button").forEach(b=>b.classList.remove("on"));
+        const mine=document.getElementById("tMine"); if(mine) mine.classList.add("on");
+        const navMine=document.querySelector('.nav button[data-t="tMine"]'); if(navMine) navMine.classList.add("on");
+      }catch(e){}
+      if(typeof render==="function") render();
+      if(typeof save==="function") save();
+    };
   }
   function renderRebirth(){
     const used=usedAttrPoints();
