@@ -570,12 +570,12 @@
   // 倍率 mult ∈ [0.1, 10]（log 均匀）；1× 是 5 级，0.1× 是 1 级，10× 是 9 级；词缀每条 +1（最多 +3）
   function starOf(p){
     const m=p.mult!=null?p.mult:1;
-    // 等级 1~1000（按 mult 中心 500=1×，每词缀 +100）
-    // log10(0.1)=-1 → 100, log10(1)=0 → 500, log10(10)=1 → 900
+    // 等级 1~10000（按 mult 中心 5000=1×，每词缀 +1000）
+    // log10(0.1)=-1 → 1000, log10(1)=0 → 5000, log10(10)=1 → 9000
     const lm=Math.log10(Math.max(0.05, m));
-    let base=Math.round(500 + lm*400);
-    const aff=Math.min(300, (p.affixes||[]).length*100);
-    return clamp(base+aff, 1, 1000);
+    let base=Math.round(5000 + lm*4000);
+    const aff=Math.min(3000, (p.affixes||[]).length*1000);
+    return clamp(base+aff, 1, 10000);
   }
 
   function bestGemTier(){let t=0;for(const k in st.gems)if(st.gems[k]>0)t=Math.max(t,+k);return t;}
@@ -583,7 +583,7 @@
 
   // 攻打判定：进度达标 + 效率达标 → 自动跳到下一矿脉；返回是否突破
   function checkConquest(){
-    if(st.mineMax>=1800)return false;
+    if(st.mineMax>=18000)return false;
     const V=currentVein();
     const atk=st.equip?st.equip.attack:0;
     const eff=V.def<=0?1:clamp(atk/(atk+V.def),0,1);
@@ -1012,11 +1012,16 @@
     diff+=`<div class="diff-sub">🛡️ 护甲 ${fmt(V.arm)} · 格挡 ${V.blk}% · 闪避 ${V.eva}% · 抗性 ${V.res}% · 攻速惩罚 -${V.spdPenalty}%</div>`;
     $("#diffTag").innerHTML=diff;
     const mc=$("#mineChips"); mc.innerHTML="";
-    // 矿脉 1~1800：每 100 级映射回 18 种基础矿脉，+10 加一个"强化"后缀
-    const mineTotal=1800;
-    for(let L=1;L<=Math.min(mineTotal, st.mineMax);L++){
+    // 矿脉 1~18000：每 1000 级映射回 18 种基础矿脉，+N 加一个"强化"后缀
+    // 只渲染"已解锁最后 12 个 + 当前选中 ±1"
+    const mineTotal=18000;
+    const showSet=new Set();
+    const lastStart=Math.max(1, Math.min(mineTotal, st.mineMax)-11);
+    for(let L=lastStart;L<=Math.min(mineTotal, st.mineMax);L++) showSet.add(L);
+    if(st.mineLv<=st.mineMax){ showSet.add(Math.max(1,st.mineLv-1)); showSet.add(st.mineLv); showSet.add(Math.min(mineTotal,st.mineLv+1)); }
+    Array.from(showSet).sort((a,b)=>a-b).forEach(L=>{
       const baseIdx=((L-1)%VEINS.length);   // 0..17
-      const tier=Math.floor((L-1)/VEINS.length);  // 0..9
+      const tier=Math.floor((L-1)/VEINS.length);  // 0..999
       const v=VEINS[baseIdx];
       const c=document.createElement("button");
       c.className="chip"+(L===st.mineLv?" on":"");
@@ -1025,9 +1030,9 @@
       c.style.background=L===st.mineLv?"var(--accent)":"#fff";
       c.style.color=L===st.mineLv?"#fff":"var(--ink)";
       c.addEventListener("click",()=>{st.mineLv=L; render(); save();});      mc.appendChild(c);
-    }
-    if(st.mineMax>=1800){
-      $("#conquestText").textContent="已征服全部矿脉（1800 级）";
+    });
+    if(st.mineMax>=18000){
+      $("#conquestText").textContent="已征服全部矿脉（18000 级）";
       $("#conquestBar").style.width="100%";
       $("#conquestBar").style.background="linear-gradient(90deg,var(--gold),var(--accent-d))";
       $("#conquestHint").textContent="👑 你已经站在矿界之巅！";
