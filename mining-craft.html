@@ -613,11 +613,14 @@
   // 倍率 mult ∈ [0.1, 10]（log 均匀）；1× 是 5 级，0.1× 是 1 级，10× 是 9 级；词缀每条 +1（最多 +3）
   function starOf(p){
     const m=p.mult!=null?p.mult:1;
-    // 等级 1~10000（按 mult 中心 5000=1×，每词缀 +1000）
-    // log10(0.1)=-1 → 1000, log10(1)=0 → 5000, log10(10)=1 → 9000
+    // 等级 1~10000（mult=1× → Lv.500 普通，mult=10× → Lv.9500 神作）
+    // 公式：base = round((log10(m)+1) × 5000) — 范围 0~10000 (clamp)
+    // mult=0.1× → 0, mult=1× → 5000, mult=10× → 10000
     const lm=Math.log10(Math.max(0.05, m));
-    let base=Math.round(5000 + lm*4000);
-    const aff=Math.min(3000, (p.affixes||[]).length*1000);
+    let base=Math.round((lm+1)*5000);
+    // 缩放系数 0.1 让 mult=1× → Lv.500、mult=0.1× → Lv.50、mult=10× → Lv.1000
+    base=Math.round(base*0.1);
+    const aff=Math.min(2000, (p.affixes||[]).length*1000);
     return clamp(base+aff, 1, 10000);
   }
 
