@@ -613,15 +613,15 @@
   // 倍率 mult ∈ [0.1, 10]（log 均匀）；1× 是 5 级，0.1× 是 1 级，10× 是 9 级；词缀每条 +1（最多 +3）
   function starOf(p){
     const m=p.mult!=null?p.mult:1;
-    // 等级 1~10000（mult=1× → Lv.500 普通，mult=10× → Lv.9500 神作）
-    // 公式：base = round((log10(m)+1) × 5000) — 范围 0~10000 (clamp)
-    // mult=0.1× → 0, mult=1× → 5000, mult=10× → 10000
-    const lm=Math.log10(Math.max(0.05, m));
-    let base=Math.round((lm+1)*5000);
-    // 缩放系数 0.1 让 mult=1× → Lv.500、mult=0.1× → Lv.50、mult=10× → Lv.1000
-    base=Math.round(base*0.1);
-    const aff=Math.min(2000, (p.affixes||[]).length*1000);
-    return clamp(base+aff, 1, 10000);
+    // 等级 1~10000：前期密集（mult 0.1~10 映射 Lv.1~10）+ 词缀放大突破上限
+    // 公式：base = round(m × 10) — 线性映射
+    //   mult=0.1× → Lv.1, mult=1× → Lv.10, mult=10× → Lv.100
+    // 词缀 +1000/条 × 3 = +3000 → 神作+3 词缀 100+3000 = Lv.3100
+    // + 重生 + 重生属性继续放大（公式里读 st.craftLv 之类的可突破 10000）
+    const affs = p.affixes || [];
+    let base = Math.round(m * 10);          // mult 0.1~10 → 1~100
+    let aff = Math.min(3000, affs.length * 1000);  // 词缀 +1000/条
+    return clamp(base + aff, 1, 10000);
   }
 
   function bestGemTier(){let t=0;for(const k in st.gems)if(st.gems[k]>0)t=Math.max(t,+k);return t;}
