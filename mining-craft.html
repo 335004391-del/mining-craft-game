@@ -87,6 +87,25 @@
   .ub:active{transform:scale(.95)}
   .ub:disabled{opacity:.4;cursor:not-allowed}
   .ub.max{background:var(--accent);color:#fff;border-color:var(--accent)}
+  /* 重生 */
+  .rb-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+  .rb-stat{background:rgba(255,255,255,.7);border-radius:10px;padding:10px;text-align:center}
+  .rb-stat.big{background:linear-gradient(135deg,#fff7d6,#fde68a)}
+  .rb-k{font-size:11px;color:var(--sub)}
+  .rb-v{font-size:18px;font-weight:800;color:var(--ink);margin-top:2px}
+  .rb-stat.big .rb-v{font-size:24px;color:var(--gold)}
+  .rb-list{display:flex;flex-direction:column;gap:7px}
+  .rb-row{display:flex;align-items:center;gap:10px;background:#faf6ec;border-radius:11px;padding:9px 12px}
+  .rb-row .ico{font-size:20px;flex:none;width:30px;text-align:center}
+  .rb-row .info{flex:1;min-width:0}
+  .rb-row .nm{font-weight:800;font-size:13px}
+  .rb-row .ds{font-size:10px;color:var(--sub);margin-top:1px}
+  .rb-row .ctrls{display:flex;align-items:center;gap:6px;flex:none}
+  .rb-mini{width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:#fff;font-weight:800;cursor:pointer;font-size:14px}
+  .rb-mini:active{transform:scale(.92)}
+  .rb-mini:disabled{opacity:.35;cursor:not-allowed}
+  .rb-mini.plus{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .rb-val{min-width:32px;text-align:center;font-weight:800;font-size:14px;color:var(--ink)}
   .li .ic{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex:none;background:#f1e9da}
   .li .nm{flex:1;font-weight:700;font-size:14px}
   .li .nm small{display:block;color:var(--sub);font-weight:500;font-size:11px}
@@ -138,6 +157,7 @@
   <div class="statbar">
     <div class="chip"><div class="v" id="hGem">0</div><div class="k">💎宝石</div></div>
     <div class="chip"><div class="v" id="hCoin">0</div><div class="k">🪙金币</div></div>
+    <div class="chip" id="chipRB" style="background:linear-gradient(135deg,#fff7d6,#fde68a)"><div class="v" id="hRB">0</div><div class="k">✦ 属性点</div></div>
     <div class="chip"><div class="v" id="hAtk">0</div><div class="k">⚔️攻击/DPS</div></div>
   </div>
 
@@ -295,8 +315,44 @@
     <button data-t="tCraft"><span class="e">🔨</span>合成</button>
     <button data-t="tInv"><span class="e">🎒</span>仓库</button>
     <button data-t="tUp"><span class="e">📈</span>升级</button>
+    <button data-t="tRebirth"><span class="e">🌀</span>重生</button>
   </div>
 </div>
+
+    <!-- 重生 -->
+    <div class="tab" id="tRebirth">
+      <div class="card" style="background:linear-gradient(135deg,#fef3c7,#fde68a)">
+        <h3>🌀 重生系统</h3>
+        <div style="font-size:13px;line-height:1.6;color:var(--ink);margin-bottom:8px">
+          重生将清空 <b>金币、矿石、宝石、镐子、矿脉进度</b>，<b>但保留所有升级（8 条）</b>。<br>
+          根据 <b>累计总金币</b> 获得 <b>属性点</b>，可永久加点提升基础属性。<br>
+          公式：<b>获得点数 = ⌊log<sub>10</sub>(累计金币 + 1)⌋</b>
+        </div>
+        <div class="rb-stats">
+          <div class="rb-stat"><div class="rb-k">已重生次数</div><div class="rb-v" id="rbCount">0</div></div>
+          <div class="rb-stat"><div class="rb-k">累计总金币</div><div class="rb-v" id="rbTotalCoins">0</div></div>
+          <div class="rb-stat"><div class="rb-k">已分配属性点</div><div class="rb-v" id="rbUsed">0</div></div>
+          <div class="rb-stat big"><div class="rb-k">✨ 可用点数</div><div class="rb-v" id="rbPoints" style="color:var(--gold)">0</div></div>
+        </div>
+        <button class="btn" id="btnRebirth" style="background:linear-gradient(135deg,var(--gold),var(--accent-d));margin-top:12px">🌀 立即重生（将获得 0 点）</button>
+        <div style="font-size:11px;color:var(--sub);margin-top:6px" id="rbHint">重生后，金币/矿石/宝石/镐子/矿脉全部清零，但升级保留</div>
+      </div>
+
+      <div class="card">
+        <h3>🎯 属性加点（每点永久生效）</h3>
+        <div class="rb-list" id="rbList">
+          <!-- 由 JS 渲染 -->
+        </div>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button class="btn ghost" id="rbResetAttr" style="flex:1">↺ 重置所有属性（退回所有点）</button>
+        </div>
+      </div>
+
+      <div class="card" style="background:linear-gradient(135deg,#ecfeff,#cffafe)">
+        <h3>📊 当前累计加成预览</h3>
+        <div id="rbPreview" style="font-size:13px;line-height:1.7"></div>
+      </div>
+    </div>
 
 <div class="mask" id="mask"></div>
 <div class="drawer" id="drawer">
@@ -396,8 +452,16 @@
     autoSell:false, pickSeq:1, craftBatch:1,
     mineLv:1, mineMax:1,
     veinProgress:{},          // 每个矿脉已累计挖出的矿石数
-    mineCount:0, maxAtk:0, start:Date.now(), last:Date.now()
+    mineCount:0, maxAtk:0, start:Date.now(), last:Date.now(),
+    rebirthCount:0, totalCoinsEver:0    // 重生次数 + 累计总金币（用于算点数）
   };
+  // 重生系统：10 项属性 + 累计获取的点数 + 总累计金币
+  // 存储在独立 key 避免主存档被重置影响
+  let RB=loadRB()||{points:0, total:0, attrs:{atk:0,crit:0,critDmg:0,atkSpd:0,gem:0,ore:0,def:0,coin:0,affix:0,floor:0}};
+  if(!RB.attrs) RB.attrs={atk:0,crit:0,critDmg:0,atkSpd:0,gem:0,ore:0,def:0,coin:0,affix:0,floor:0};
+  const RB_KEY="rebirth_v1";
+  function loadRB(){try{return JSON.parse(localStorage.getItem(RB_KEY));}catch(e){return null;}}
+  function saveRB(){localStorage.setItem(RB_KEY, JSON.stringify(RB));}
   // 旧档兼容：保证 picks 数组与 equip 一致
   if(!Array.isArray(st.picks))st.picks=[];
   if(st.equip && !st.picks.includes(st.equip))st.picks.push(st.equip);
@@ -410,6 +474,8 @@
   if(st.forgeLv==null)st.forgeLv=0;
   if(st.legendLv==null)st.legendLv=0;
   if(st.luckyLv==null)st.luckyLv=0;
+  if(st.rebirthCount==null)st.rebirthCount=0;
+  if(st.totalCoinsEver==null)st.totalCoinsEver=0;
   if(st.mineLv==null)st.mineLv=1;
   if(st.mineMax==null)st.mineMax=1;
   if(st.mineMax>VEINS.length)st.mineMax=VEINS.length;
@@ -441,23 +507,23 @@
   function rollGemTier(){
     const eq=st.equip?st.equip.gemQ:1;
     const V=currentVein();
-    // 中心 = 装备宝石与矿脉宝石均值 + 升级加成；最大 160 阶（×10）
-    const center=clamp(Math.round((eq+V.gem)/2 + st.dropLv*0.2*V.drop),1,160);
-    return clamp(center+ri(-20,20),1,160);
+    // 中心 = 装备宝石与矿脉宝石均值 + 升级加成；最大 1600 阶（×100 over base 16）
+    const center=clamp(Math.round((eq+V.gem)/2 + st.dropLv*0.2*V.drop),1,1600);
+    return clamp(center+ri(-200,200),1,1600);
   }
   function rollOreLv(){
     const V=currentVein();
-    // 矿石等级上限 9990（×10）
-    return clamp(Math.round(V.ore + rnd(-10,10) + st.dropLv*0.3*V.drop),1,9990);
+    // 矿石等级上限 99900（×10）
+    return clamp(Math.round(V.ore + rnd(-100,100) + st.dropLv*0.3*V.drop),1,99900);
   }
   function craftCost(lv){return Math.ceil(50*Math.pow(1.5,lv));}
   function gemChance(){
     const V=currentVein();
-    return clamp(0.04+st.dropLv*0.01+(st.equip?st.equip.gemQ*0.004:0),0,0.5)*V.drop;
+    return clamp(0.04+st.dropLv*0.01+(st.equip?st.equip.gemQ*0.004:0),0,0.5)*V.drop*(1+RB.attrs.affix*0.05);
   }
   // 当前矿脉：1~180 → 18 种循环
   function currentVein(){ return VEINS[((st.mineLv-1)%VEINS.length)]; }
-  // 160 阶宝石映射：1~16 → 原表，17~160 → 循环 + 强化后缀
+  // 1600 阶宝石映射：1~16 → 原表 1~16 阶；17~1600 → 循环 + 强化后缀（boost 0~99）
   function gemAt(t){
     const base=((t-1)%16)+1;
     const boost=Math.floor((t-1)/16);
@@ -468,18 +534,20 @@
   function computeAtk(g,o,craftLv,handle,head,conn){
     const total=handle+head, quality=total*conn/100;
     const oreMult=Math.pow(o+1,1.7);
-    return quality*g*oreMult*(1+craftLv*0.12)*5;
+    const rbatk=1+RB.attrs.atk*0.05;          // 重生 atk 每点 +5%
+    return quality*g*oreMult*(1+craftLv*0.12)*5*rbatk;
   }
-  // 计算 6 维攻击属性（流放之路风格）
+  // 计算 6 维攻击属性（流放之路风格 + 重生加成）
   function computeAttrs(g,o,craftLv,gemLv,oreLv,conn){
     const base=g*5+o*8+craftLv*2;
+    const A=RB.attrs;
     return {
-      phys:  Math.round(base*3*(1+craftLv*0.10)*(1+gemLv*0.08)),    // 物理攻击
-      crit:  clamp(5+gemLv*2+craftLv*0.3, 5, 80),                    // 暴击率 %
-      critDmg: Math.round(150+g*15+craftLv*1.5),                      // 暴击伤害 %
-      atkSpd:+(0.8+o*0.02+craftLv*0.02).toFixed(2),                  // 攻击速度（次/秒）
-      gemBonus:Math.round((g*10+gemLv*5)*(1+craftLv*0.05)),          // 宝石加成
-      oreBonus:Math.round((o*8+oreLv*4)*(1+craftLv*0.05))            // 矿石加成
+      phys:  Math.round(base*3*(1+craftLv*0.10)*(1+gemLv*0.08)*(1+A.atk*0.05)),
+      crit:  clamp(5+gemLv*2+craftLv*0.3+A.crit, 5, 100),                       // 暴击率 %
+      critDmg: Math.round(150+g*15+craftLv*1.5+A.critDmg*0.5),                   // 暴击伤害 %（每点 +0.5%）
+      atkSpd:+(0.8+o*0.02+craftLv*0.02+A.atkSpd*0.01).toFixed(2),               // 攻击速度（次/秒）
+      gemBonus:Math.round((g*10+gemLv*5)*(1+craftLv*0.05)*(1+A.gem*0.05)),      // 宝石加成
+      oreBonus:Math.round((o*8+oreLv*4)*(1+craftLv*0.05)*(1+A.ore*0.05))        // 矿石加成
     };
   }
   // 镐子 DPS（按 6 维综合）
@@ -502,12 +570,12 @@
   // 倍率 mult ∈ [0.1, 10]（log 均匀）；1× 是 5 级，0.1× 是 1 级，10× 是 9 级；词缀每条 +1（最多 +3）
   function starOf(p){
     const m=p.mult!=null?p.mult:1;
-    // 等级 1~100（按 mult 中心 50=1×，每词缀 +10）
-    // log10(0.1)=-1 → 10, log10(1)=0 → 50, log10(10)=1 → 90
+    // 等级 1~1000（按 mult 中心 500=1×，每词缀 +100）
+    // log10(0.1)=-1 → 100, log10(1)=0 → 500, log10(10)=1 → 900
     const lm=Math.log10(Math.max(0.05, m));
-    let base=Math.round(50 + lm*40);
-    const aff=Math.min(30, (p.affixes||[]).length*10);
-    return clamp(base+aff, 1, 100);
+    let base=Math.round(500 + lm*400);
+    const aff=Math.min(300, (p.affixes||[]).length*100);
+    return clamp(base+aff, 1, 1000);
   }
 
   function bestGemTier(){let t=0;for(const k in st.gems)if(st.gems[k]>0)t=Math.max(t,+k);return t;}
@@ -515,7 +583,7 @@
 
   // 攻打判定：进度达标 + 效率达标 → 自动跳到下一矿脉；返回是否突破
   function checkConquest(){
-    if(st.mineMax>=180)return false;
+    if(st.mineMax>=1800)return false;
     const V=currentVein();
     const atk=st.equip?st.equip.attack:0;
     const eff=V.def<=0?1:clamp(atk/(atk+V.def),0,1);
@@ -535,7 +603,7 @@
     if(!st.equip)return;
     const V=currentVein();
     const atk=st.equip.attack;
-    const eff=V.def<=0?1:clamp(atk/(atk+V.def),0,1);
+    const eff=V.def<=0?1:clamp(atk/(atk+V.def*(1-RB.attrs.def*0.02)),0,1);   // 重生 def 减伤
     const gain=Math.max(1,Math.round(atk*0.5*V.yld*eff));
     const lv=rollOreLv();
     st.ores[lv]=(st.ores[lv]||0)+gain;
@@ -569,7 +637,11 @@
   }
 
   // 镐子估价（出售价）
-  function pickSellValue(p){return Math.max(1,Math.floor(p.attack*3));}
+  function pickSellValue(p){return Math.max(1,Math.floor(p.attack*3*(1+RB.attrs.coin*0.1)));}
+  // 统一累加金币（自动累加到 totalCoinsEver 用于算重生点数）
+  function addCoins(n){
+    st.coins+=n; st.totalCoinsEver=(st.totalCoinsEver||0)+n;
+  }
   // 镐子命名（PoE 风格：词缀前缀 + 核心名 + 后缀）
   // 前缀：按 6 维属性最高的命名；后缀：按 mult/品质/词缀
   const PREFIX=[
@@ -643,7 +715,7 @@
       const connCeil=Math.min(99+st.luckyLv, 99+st.luckyLv);   // 运气突破 99 上限
       const baseConn=clamp(50+g*10+st.craftLv*2+ri(-connJitter,connJitter), connFloor, connCeil);
       // 攻击浮动：log-uniform（名望抬下限、压缩低端范围；名将出品提高高 mult 概率）
-      const lo=clamp(0.1+st.fameLv*0.005, 0.1, 0.95);    // 名望越高，下限越接近 1
+      const lo=clamp(0.1+st.fameLv*0.005+RB.attrs.floor*0.01, 0.1, 0.99);    // 名望 + 重生 floor 加成
       const hi=10;
       // 偏置：legend 等级越高越倾向 logUniform 取高值（pow(m, 1/(1+lv*0.1))）
       let m1=logUniform(lo, hi);
@@ -661,8 +733,8 @@
       const attrs=computeAttrs(g,o,st.craftLv,st.gemLv,st.oreLv,conn);
       const pick={id:st.pickSeq++,handle:+handle.toFixed(1),head:+head.toFixed(1),conn:Math.round(conn),
         total:+total.toFixed(1),quality:+quality.toFixed(1),attack,gemQ:g,oreLv:o,attrs,affixes:[],mult:+mult.toFixed(2)};
-      // 词缀：基础 15%；名望 +0.5%/级；最多 3 条（名将出品 +1 容量）
-      const affixChance=0.15+st.craftLv*0.01+st.fameLv*0.005;
+      // 词缀：基础 15%；名望 +0.5%/级 + 重生 affix +2%/点
+      const affixChance=0.15+st.craftLv*0.01+st.fameLv*0.005+RB.attrs.affix*0.02;
       const maxAffix=2+st.legendLv;
       const r=Math.random();
       const affixCount = r<0.05+st.legendLv*0.02 ? Math.min(maxAffix, 3)
@@ -682,7 +754,7 @@
       pick.name=pickName(pick);
       // 自动出售低攻镐子（严格小于当前装备攻击）
       if(st.autoSell && st.equip && attack < st.equip.attack){
-        const v=pickSellValue(pick); st.coins+=v; sold+=v;
+        const v=pickSellValue(pick); addCoinsv; sold+=v;
       }else{
         st.picks.push(pick);
         if(!bestPick || attack>bestPick.attack) bestPick=pick;
@@ -710,7 +782,7 @@
   function sellPick(id){
     const i=st.picks.findIndex(x=>x.id===id); if(i<0)return;
     const p=st.picks[i];
-    st.coins+=pickSellValue(p);
+    addCoinspickSellValue(p);
     st.picks.splice(i,1);
     if(st.equip===p)st.equip=null;
     hint("出售镐子 +🪙 "+fmt(pickSellValue(p))); render(); save();
@@ -721,7 +793,7 @@
       let sold=0;
       const ref=st.equip.attack;
       st.picks=st.picks.filter(p=>{
-        if(p.attack<ref){ if(st.equip===p)st.equip=null; st.coins+=pickSellValue(p); sold+=pickSellValue(p); return false; }
+        if(p.attack<ref){ if(st.equip===p)st.equip=null; addCoinspickSellValue(p); sold+=pickSellValue(p); return false; }
         return true;
       });
       if(sold>0)hint("🤖 清理低攻镐子 +🪙 "+fmt(sold));
@@ -732,7 +804,7 @@
   // 出售
   function sellOre(lv){
     const c=st.ores[lv]; if(!c)return;
-    st.coins+=c*lv*8; delete st.ores[lv]; render(); save();
+    addCoinsMath.ceil(c*lv*8*(1+RB.attrs.coin*0.1)); delete st.ores[lv]; render(); save();
   }
   // 一键出售全部矿石
   function sellAllOre(){
@@ -740,9 +812,10 @@
     for(const k in st.ores){ total += st.ores[k]*k*8; count += st.ores[k]; }
     if(total<=0){hint("没有可出售的矿石");return;}
     if(!confirm("确认出售全部 "+fmt(count)+" 个矿石，获得 🪙 "+fmt(total)+" 金币？"))return;
-    st.coins += total;
+    const gain=Math.ceil(total*(1+RB.attrs.coin*0.1));
+    st.coins += gain;
     st.ores = {};
-    hint("💰 出售 "+fmt(count)+" 个矿石 +🪙 "+fmt(total));
+    hint("💰 出售 "+fmt(count)+" 个矿石 +🪙 "+fmt(gain));
     render(); save();
   }
   // 升级键 → Lv 字段、键 → 价格倍率（用 var 避免 const 的 TDZ 限制）
@@ -788,6 +861,95 @@
     render(); save();
   }
 
+  // 重生
+  const RB_ATTRS=[
+    {k:"atk",    e:"⚔️", n:"基础攻击",   ds:"每点 +5% 物理攻击",          max:50},
+    {k:"crit",   e:"🎯", n:"暴击率",     ds:"每点 +1% 暴击率",            max:50},
+    {k:"critDmg",e:"💥", n:"暴击伤害",   ds:"每点 +0.5% 暴伤",            max:50},
+    {k:"atkSpd", e:"⚡", n:"攻击速度",   ds:"每点 +0.01/秒 攻速",         max:50},
+    {k:"gem",    e:"💎", n:"宝石加成",   ds:"每点 +5% 宝石加成",          max:50},
+    {k:"ore",    e:"🪨", n:"矿石加成",   ds:"每点 +5% 矿石加成",          max:50},
+    {k:"def",    e:"🛡️", n:"镐子防御",  ds:"每点 -2% 矿脉防御（穿透）",   max:50},
+    {k:"coin",   e:"💰", n:"金币收益",   ds:"每点 +10% 出售价",            max:50},
+    {k:"affix",  e:"🍀", n:"词缀率",     ds:"每点 +2% 词缀出现率",        max:30},
+    {k:"floor",  e:"📈", n:"攻击下限",   ds:"每点 +0.01 攻击下限（0.1→0.99）", max:50},
+  ];
+  function usedAttrPoints(){
+    let s=0; for(const k in RB.attrs) s+=RB.attrs[k]; return s;
+  }
+  function pointsFromCoins(total){
+    return Math.max(0, Math.floor(Math.log10(Math.max(1, total+1))));
+  }
+  function doRebirth(){
+    if(typeof confirm==="function" && !confirm("🌀 立即重生？\n\n将清空：金币、矿石、宝石、镐子、矿脉进度\n保留：8 条升级 + 属性点\n\n获得 "+pointsFromCoins(st.totalCoinsEver||0)+" 点（基于累计 "+fmt(st.totalCoinsEver||0)+" 金币）"))return;
+    const gain=pointsFromCoins(st.totalCoinsEver||0);
+    // 清空游戏进度
+    st.gems={1:1}; st.ores={1:1}; st.coins=0;
+    st.picks=[]; st.equip=null;
+    st.mineLv=1; st.mineMax=1; st.veinProgress={};
+    st.mineCount=0; st.maxAtk=0;
+    st.rebirthCount=(st.rebirthCount||0)+1;
+    // 累计总金币不减（用于持续算下一次点数）；本次累计也算入
+    RB.points = (RB.points||0) + gain;
+    saveRB();
+    if(typeof hint==="function") hint("🌀 重生成功！获得 "+gain+" 点，已自动跳到挖矿 tab");
+    // 切到挖矿 tab
+    try{
+      document.querySelectorAll(".tab").forEach(t=>t.classList.remove("on"));
+      document.querySelectorAll(".nav button").forEach(b=>b.classList.remove("on"));
+      const mine=document.getElementById("tMine"); if(mine) mine.classList.add("on");
+      const navMine=document.querySelector('.nav button[data-t="tMine"]'); if(navMine) navMine.classList.add("on");
+    }catch(e){}
+    if(typeof render==="function") render();
+    if(typeof save==="function") save();
+  }
+  function renderRebirth(){
+    const used=usedAttrPoints();
+    const total=st.totalCoinsEver||0;
+    const canGain=pointsFromCoins(total);
+    $("#rbCount").textContent=st.rebirthCount||0;
+    $("#rbTotalCoins").textContent=fmt(total);
+    $("#rbUsed").textContent=used;
+    $("#rbPoints").textContent=RB.points||0;
+    $("#btnRebirth").innerHTML="🌀 立即重生（将获得 <b>"+canGain+"</b> 点）";
+    $("#rbHint").textContent="累计 "+fmt(total)+" 金币 → "+canGain+" 点。下次重生门槛："+fmt(Math.pow(10,canGain+1)-1);
+    // 加点列表
+    const list=$("#rbList"); list.innerHTML="";
+    RB_ATTRS.forEach(a=>{
+      const v=RB.attrs[a.k]||0;
+      const canMinus=v>0, canPlus=RB.points>0 && v<a.max;
+      const row=document.createElement("div"); row.className="rb-row";
+      row.innerHTML=`
+        <div class="ico">${a.e}</div>
+        <div class="info"><div class="nm">${a.n}</div><div class="ds">${a.ds}（已 +${v}）</div></div>
+        <div class="ctrls">
+          <button class="rb-mini" data-act="-" data-k="${a.k}" ${canMinus?'':'disabled'}>−</button>
+          <div class="rb-val">${v}</div>
+          <button class="rb-mini plus" data-act="+" data-k="${a.k}" ${canPlus?'':'disabled'}>+</button>
+        </div>`;
+      list.appendChild(row);
+    });
+    list.querySelectorAll(".rb-mini").forEach(b=>b.addEventListener("click",()=>{
+      const k=b.dataset.k, act=b.dataset.act;
+      if(act==="+"){ if(RB.points<=0) return; if(RB.attrs[k]>=RB_ATTRS.find(x=>x.k===k).max) return; RB.attrs[k]++; RB.points--; }
+      else { if(RB.attrs[k]<=0) return; RB.attrs[k]--; RB.points++; }
+      saveRB(); renderRebirth();
+    }));
+    // 预览
+    const P=[];
+    if(RB.attrs.atk)P.push(`⚔️ 攻击 +${(RB.attrs.atk*5)}%`);
+    if(RB.attrs.crit)P.push(`🎯 暴击 +${RB.attrs.crit}%`);
+    if(RB.attrs.critDmg)P.push(`💥 暴伤 +${(RB.attrs.critDmg*0.5).toFixed(1)}%`);
+    if(RB.attrs.atkSpd)P.push(`⚡ 攻速 +${(RB.attrs.atkSpd*0.01).toFixed(2)}/s`);
+    if(RB.attrs.gem)P.push(`💎 宝石 +${RB.attrs.gem*5}%`);
+    if(RB.attrs.ore)P.push(`🪨 矿石 +${RB.attrs.ore*5}%`);
+    if(RB.attrs.def)P.push(`🛡️ 防御穿透 ${RB.attrs.def*2}%`);
+    if(RB.attrs.coin)P.push(`💰 金币 +${RB.attrs.coin*10}%`);
+    if(RB.attrs.affix)P.push(`🍀 词缀 +${RB.attrs.affix*2}%`);
+    if(RB.attrs.floor)P.push(`📈 下限 ×${(0.1+RB.attrs.floor*0.01).toFixed(2)}`);
+    $("#rbPreview").innerHTML = P.length?P.join(" · "):"（未加点）";
+  }
+
   // 渲染
   function render(){
     const tg=bestGemTier(), to=bestOreLv();
@@ -795,6 +957,8 @@
     $("#hGem").textContent=tg?(gemAt(tg).e+"×"+fmt(totGem)):"0";
     $("#hCoin").textContent=fmt(st.coins);
     $("#hAtk").textContent=st.equip?fmt(st.equip.attack)+"·"+fmt(pickDPS(st.equip)):"0";
+    $("#hRB").textContent=RB.points||0;
+    renderRebirth();   // 同步重生页面数值
 
     // 镐子卡
     const pk=$("#pkCard");
@@ -848,8 +1012,8 @@
     diff+=`<div class="diff-sub">🛡️ 护甲 ${fmt(V.arm)} · 格挡 ${V.blk}% · 闪避 ${V.eva}% · 抗性 ${V.res}% · 攻速惩罚 -${V.spdPenalty}%</div>`;
     $("#diffTag").innerHTML=diff;
     const mc=$("#mineChips"); mc.innerHTML="";
-    // 矿脉 1~180：每 10 级映射回 18 种基础矿脉，+10 加一个"强化"后缀
-    const mineTotal=180;
+    // 矿脉 1~1800：每 100 级映射回 18 种基础矿脉，+10 加一个"强化"后缀
+    const mineTotal=1800;
     for(let L=1;L<=Math.min(mineTotal, st.mineMax);L++){
       const baseIdx=((L-1)%VEINS.length);   // 0..17
       const tier=Math.floor((L-1)/VEINS.length);  // 0..9
@@ -862,8 +1026,8 @@
       c.style.color=L===st.mineLv?"#fff":"var(--ink)";
       c.addEventListener("click",()=>{st.mineLv=L; render(); save();});      mc.appendChild(c);
     }
-    if(st.mineMax>=180){
-      $("#conquestText").textContent="已征服全部矿脉（180 级）";
+    if(st.mineMax>=1800){
+      $("#conquestText").textContent="已征服全部矿脉（1800 级）";
       $("#conquestBar").style.width="100%";
       $("#conquestBar").style.background="linear-gradient(90deg,var(--gold),var(--accent-d))";
       $("#conquestHint").textContent="👑 你已经站在矿界之巅！";
@@ -936,7 +1100,7 @@
     // 仓库 —— 宝石
     const gl=$("#gemList"); gl.innerHTML="";
     let anyG=false;
-    for(let t=160;t>=1;t--){ if(st.gems[t]){anyG=true;
+    for(let t=1600;t>=1;t--){ if(st.gems[t]){anyG=true;
       // 16 阶之外按 (t-1)%16+1 取（环形映射），加 + 强化后缀
       const base=((t-1)%16)+1;
       const boost=Math.floor((t-1)/16);   // 0..9
@@ -1045,6 +1209,15 @@
     const which=b.dataset.up, n=+b.dataset.n;
     buyUp(which, n);
   }));
+  // 重生：立即重生按钮
+  $("#btnRebirth").addEventListener("click",()=>doRebirth());
+  $("#rbResetAttr").addEventListener("click",()=>{
+    if(!confirm("重置所有属性点退回可用点数？"))return;
+    let used=0; for(const k in RB.attrs) used+=RB.attrs[k];
+    RB.points+=used;
+    RB.attrs={atk:0,crit:0,critDmg:0,atkSpd:0,gem:0,ore:0,def:0,coin:0,affix:0,floor:0};
+    saveRB(); renderRebirth(); hint("↺ 属性已重置，退回 "+used+" 点");
+  });
   $("#swAutoSell").addEventListener("click",toggleAutoSell);
   // 已改为自动解锁：累计进度达标 + 效率达标 → 下一挖自动跳到下一矿脉
 
