@@ -221,10 +221,32 @@
   .rb-hero::before{content:"";position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--purple),var(--gold),transparent);opacity:.6}
   .rb-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
   .rb-stat{background:rgba(0,0,0,.3);border-radius:12px;padding:11px;text-align:center;border:1px solid var(--line)}
-  .rb-stat.big{background:linear-gradient(135deg,rgba(180,106,214,.2),rgba(255,215,106,.15));border-color:rgba(180,106,214,.4)}
+  .rb-stat.rb-big{background:linear-gradient(135deg,rgba(180,106,214,.2),rgba(255,215,106,.15));border-color:rgba(180,106,214,.4)}
   .rb-k{font-size:10px;color:var(--sub);letter-spacing:.5px}
   .rb-v{font-size:18px;font-weight:800;color:var(--ink);margin-top:3px}
-  .rb-stat.big .rb-v{font-size:24px;color:var(--purple);text-shadow:0 0 10px rgba(180,106,214,.4)}
+  .rb-stat.rb-big .rb-v{font-size:24px;color:var(--purple);text-shadow:0 0 10px rgba(180,106,214,.4)}
+  /* === 重生卡（浅色羊皮纸底）专属文字层级：深色主题的配色在浅底上不可读 === */
+  .card.rb-card{
+    background:linear-gradient(135deg,#fdf3d0,#f6e2a6);
+    border:1px solid rgba(138,100,16,.3);
+    box-shadow:0 6px 22px rgba(90,60,10,.28), inset 0 1px 0 rgba(255,255,255,.65);
+  }
+  .rb-card h3{color:#8a5a00}
+  .rb-card .rb-desc{font-size:13px;line-height:1.8;color:#6b5232;margin-bottom:12px}
+  .rb-card .rb-desc b{font-weight:800}
+  .rb-card .lose{color:#b03434}
+  .rb-card .keep{color:#1e7a4e}
+  .rb-card .formula{
+    display:inline-block;background:rgba(255,255,255,.6);border:1px dashed rgba(138,100,16,.45);
+    border-radius:8px;padding:2px 9px;color:#7a5200;font-size:12.5px;
+  }
+  .rb-card .rb-stat{background:rgba(255,255,255,.6);border-color:rgba(138,100,16,.22);box-shadow:inset 0 1px 0 rgba(255,255,255,.75)}
+  .rb-card .rb-k{color:#96753c}
+  .rb-card .rb-v{color:#4a3520}
+  .rb-card .rb-stat.rb-big{background:linear-gradient(135deg,rgba(180,106,214,.15),rgba(255,215,106,.35));border-color:rgba(150,80,190,.5)}
+  .rb-card .rb-stat.rb-big .rb-k{color:#8a4ab0;font-weight:700}
+  .rb-card .rb-stat.rb-big .rb-v{color:#8a3fb8;text-shadow:none}
+  .rb-card .rb-hint{font-size:11px;color:#96753c;margin-top:8px;line-height:1.5}
   .rb-list{display:flex;flex-direction:column;gap:7px}
   .rb-row{
     display:flex;align-items:center;gap:10px;background:rgba(0,0,0,.25);border-radius:12px;
@@ -501,21 +523,21 @@
 
     <!-- 重生 -->
     <div class="tab" id="tRebirth">
-      <div class="card" style="background:linear-gradient(135deg,#fef3c7,#fde68a)">
+      <div class="card rb-card">
         <h3>🌀 重生系统</h3>
-        <div style="font-size:13px;line-height:1.6;color:var(--ink-2);margin-bottom:8px">
-          重生将清空 <b style="color:var(--crimson)">金币、矿石、宝石、镐子、矿脉进度</b>，<br>
-          但保留 <b style="color:var(--emerald)">8 条升级 + 属性点</b>。<br>
-          公式：<b style="color:var(--gold)">获得点数 = ⌊log<sub>10</sub>(累计金币 + 1)⌋</b>
+        <div class="rb-desc">
+          重生将清空 <b class="lose">金币、矿石、宝石、镐子、矿脉进度</b>，<br>
+          但保留 <b class="keep">8 条升级 + 属性点</b>。<br>
+          公式：<b class="formula">获得点数 = ⌊log<sub>10</sub>(累计金币 + 1)⌋</b>
         </div>
         <div class="rb-stats">
           <div class="rb-stat"><div class="rb-k">已重生次数</div><div class="rb-v" id="rbCount">0</div></div>
           <div class="rb-stat"><div class="rb-k">累计总金币</div><div class="rb-v" id="rbTotalCoins">0</div></div>
           <div class="rb-stat"><div class="rb-k">已分配属性点</div><div class="rb-v" id="rbUsed">0</div></div>
-          <div class="rb-stat big"><div class="rb-k">✦ 可用点数</div><div class="rb-v" id="rbPoints">0</div></div>
+          <div class="rb-stat rb-big"><div class="rb-k">✦ 可用点数</div><div class="rb-v" id="rbPoints">0</div></div>
         </div>
         <button class="btn" id="btnRebirth" style="background:linear-gradient(145deg,var(--purple),#7a3aa0);box-shadow:0 4px 16px rgba(180,106,214,.4);margin-top:12px">🌀 立即重生（将获得 0 点）</button>
-        <div style="font-size:11px;color:var(--sub);margin-top:6px" id="rbHint">重生后，金币/矿石/宝石/镐子/矿脉全部清零，但升级保留</div>
+        <div class="rb-hint" id="rbHint">重生后，金币/矿石/宝石/镐子/矿脉全部清零，但升级保留</div>
       </div>
 
       <div class="card">
