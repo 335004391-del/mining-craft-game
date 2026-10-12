@@ -285,6 +285,7 @@
   }
   /* === 底栏（图标 + 魔法光）=== */
   .nav{
+    position:relative;z-index:101;   /* 高于弹窗(100)/抽屉(21)，底栏永远可点 */
     display:flex;border-top:1px solid var(--line-2);
     background:linear-gradient(180deg,rgba(0,0,0,.5),rgba(0,0,0,.85));
     backdrop-filter:blur(12px);
@@ -303,7 +304,7 @@
   .nav button.on::after{content:"";position:absolute;top:0;left:50%;transform:translateX(-50%);
     width:30px;height:2px;background:linear-gradient(90deg,transparent,var(--gold),transparent);border-radius:99px;}
   /* === 抽屉（设置/统计）=== */
-  .mask{position:fixed;inset:0;background:rgba(0,0,0,.6);opacity:0;visibility:hidden;transition:.2s;z-index:20;backdrop-filter:blur(4px)}
+  .mask{position:fixed;top:0;left:0;right:0;bottom:60px;background:rgba(0,0,0,.6);opacity:0;visibility:hidden;transition:.2s;z-index:20;backdrop-filter:blur(4px)}
   .mask.on{opacity:1;visibility:visible}
   .drawer{
     position:fixed;top:0;right:0;height:100%;width:84%;max-width:340px;z-index:21;
@@ -495,6 +496,7 @@
           </div>
         </div>
       </div>
+    </div>
 
     <!-- 重生 -->
     <div class="tab" id="tRebirth">
@@ -1062,7 +1064,7 @@
     if(total<=0){hint("没有可出售的矿石");return;}
     const gain=Math.ceil(total*(1+RB.attrs.coin*0.1));
     // 自定义弹窗（避免浏览器 confirm 被屏蔽）
-    const overlay=document.createElement("div");
+    const overlay=document.createElement("div"); overlay.className="modalOv";
     overlay.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px";
     const dlg=document.createElement("div");
     dlg.style.cssText="background:var(--card);border-radius:14px;max-width:360px;width:100%;padding:20px;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.3)";
@@ -1080,6 +1082,7 @@
     overlay.appendChild(dlg);
     document.body.appendChild(overlay);
     function close(){ overlay.remove(); }
+    overlay.onclick=(e)=>{ if(e.target===overlay) close(); };  // 点外部关闭
     dlg.querySelector(".rbC").onclick=close;
     dlg.querySelector(".rbOk").onclick=()=>{
       close();
@@ -1156,7 +1159,7 @@
     const totalCoins=st.totalCoinsEver||0;
     // 自定义弹窗（避免浏览器 confirm 被屏蔽 + 更友好）
     const oldMask=document.getElementById("mask");
-    const overlay=document.createElement("div");
+    const overlay=document.createElement("div"); overlay.className="modalOv";
     overlay.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px";
     const dlg=document.createElement("div");
     dlg.style.cssText="background:var(--card);border-radius:14px;max-width:360px;width:100%;padding:20px;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.3)";
@@ -1179,6 +1182,7 @@
     overlay.appendChild(dlg);
     document.body.appendChild(overlay);
     function close(){ overlay.remove(); }
+    overlay.onclick=(e)=>{ if(e.target===overlay) close(); };   // 点外部关闭
     dlg.querySelector("#rbCancel").onclick=close;
     dlg.querySelector("#rbConfirm").onclick=()=>{
       close();
@@ -1545,11 +1549,23 @@
   // 重生：立即重生按钮
   $("#btnRebirth").addEventListener("click",()=>doRebirth());
   $("#rbResetAttr").addEventListener("click",()=>{
-    if(!confirm("重置所有属性点退回可用点数？"))return;
     let used=0; for(const k in RB.attrs) used+=RB.attrs[k];
-    RB.points+=used;
-    RB.attrs={atk:0,crit:0,critDmg:0,atkSpd:0,gem:0,ore:0,def:0,coin:0,affix:0,floor:0};
-    saveRB(); renderRebirth(); hint("↺ 属性已重置，退回 "+used+" 点");
+    if(used<=0){hint("没有可重置的属性点");return;}
+    const overlay=document.createElement("div"); overlay.className="modalOv";
+    overlay.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px";
+    const dlg=document.createElement("div");
+    dlg.style.cssText="background:var(--card);border-radius:14px;max-width:360px;width:100%;padding:20px;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.3)";
+    dlg.innerHTML='<div style="font-size:40px;line-height:1;margin-bottom:8px">↺</div><div style="font-weight:800;font-size:15px;margin-bottom:10px">重置所有属性？</div><div style="background:linear-gradient(135deg,rgba(180,106,214,.15),rgba(0,0,0,.2));border-radius:10px;padding:12px;margin-bottom:14px"><div style="font-size:11px;color:var(--sub)">将退回</div><div style="font-size:24px;font-weight:800;color:var(--purple);margin-top:4px">+'+used+' ✦ 属性点</div></div><div style="display:flex;gap:8px"><button class="btn ghost rbC2" style="flex:1;padding:12px">取消</button><button class="btn rbOk2" style="flex:1;padding:12px;background:linear-gradient(145deg,var(--purple),#7a3aa0)">确认重置</button></div>';
+    overlay.appendChild(dlg); document.body.appendChild(overlay);
+    function close(){ overlay.remove(); }
+    overlay.onclick=(e)=>{ if(e.target===overlay) close(); };
+    dlg.querySelector(".rbC2").onclick=close;
+    dlg.querySelector(".rbOk2").onclick=()=>{
+      close();
+      RB.points+=used;
+      RB.attrs={atk:0,crit:0,critDmg:0,atkSpd:0,gem:0,ore:0,def:0,coin:0,affix:0,floor:0};
+      saveRB(); renderRebirth(); hint("↺ 属性已重置，退回 "+used+" 点");
+    };
   });
   $("#swAutoSell").addEventListener("click",toggleAutoSell);
   // 已改为自动解锁：累计进度达标 + 效率达标 → 下一挖自动跳到下一矿脉
@@ -1558,6 +1574,9 @@
     document.querySelectorAll(".nav button").forEach(x=>x.classList.remove("on"));
     document.querySelectorAll(".tab").forEach(x=>x.classList.remove("on"));
     b.classList.add("on"); $("#"+b.dataset.t).classList.add("on");
+    // 关闭所有自定义弹窗（防止弹窗卡住 nav 不可点）
+    document.querySelectorAll('.modalOv').forEach(el=>el.remove());
+    document.querySelectorAll("#mask.on, #drawer.on").forEach(el=>el.classList.remove("on"));
     save();   // 切 tab 立即存档（防止切到仓库时丢进度）
   }));
 
@@ -1566,7 +1585,18 @@
   $("#closex").addEventListener("click",()=>{$("#drawer").classList.remove("on");$("#mask").classList.remove("on");});
   $("#mask").addEventListener("click",()=>{$("#drawer").classList.remove("on");$("#mask").classList.remove("on");});
   $("#saveBtn").addEventListener("click",()=>{save();hint("已保存");});
-  $("#resetBtn").addEventListener("click",()=>{if(confirm("清空所有进度？")){localStorage.removeItem(SAVE);location.reload();}});
+  $("#resetBtn").addEventListener("click",()=>{
+    const overlay=document.createElement("div"); overlay.className="modalOv";
+    overlay.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px";
+    const dlg=document.createElement("div");
+    dlg.style.cssText="background:var(--card);border-radius:14px;max-width:360px;width:100%;padding:20px;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.3);border:2px solid var(--crimson)";
+    dlg.innerHTML='<div style="font-size:40px;line-height:1;margin-bottom:8px">⚠️</div><div style="font-weight:800;font-size:15px;margin-bottom:10px;color:var(--crimson)">清空所有进度？</div><div style="font-size:11px;color:var(--sub);margin-bottom:14px;line-height:1.5">金币/矿石/宝石/镐子/矿脉/重生属性全部清零<br>此操作不可撤销</div><div style="display:flex;gap:8px"><button class="btn ghost rrC" style="flex:1;padding:12px">取消</button><button class="btn danger rrO" style="flex:1;padding:12px">确认清空</button></div>';
+    overlay.appendChild(dlg); document.body.appendChild(overlay);
+    function close(){ overlay.remove(); }
+    overlay.onclick=(e)=>{ if(e.target===overlay) close(); };
+    dlg.querySelector(".rrC").onclick=close;
+    dlg.querySelector(".rrO").onclick=()=>{ close(); localStorage.removeItem(SAVE); location.reload(); };
+  });
   $("#sellAllOre").addEventListener("click",sellAllOre);
 
   let ht; function hint(t){const h=$("#hint");h.textContent=t;h.classList.add("on");clearTimeout(ht);ht=setTimeout(()=>h.classList.remove("on"),1300);}
