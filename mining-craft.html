@@ -183,8 +183,22 @@
   .grid2 > .li .nm{font-size:13px;line-height:1.3;width:100%;word-break:break-all}
   .grid2 > .li .nm small{display:block;font-size:10px;margin-top:2px}
   .grid2 > .li .ct{font-size:13px;align-self:flex-end;margin-top:auto;color:var(--gold);font-weight:800}
-  .pick-card{min-height:130px;border:1px solid var(--line-2)}
+  .pick-card{min-height:130px;border:1px solid var(--line-2);transition:.15s}
+  .pick-card:active{transform:scale(.98)}
   .pick-card.on{border:1.5px solid var(--emerald);box-shadow:0 0 16px rgba(92,212,160,.35)}
+  /* 仓库镐子卡专用按钮：装备琥珀金 + 出售翡翠绿 */
+  .pkAct{
+    border:none;border-radius:10px;padding:7px 0;font-size:11px;font-weight:800;cursor:pointer;
+    letter-spacing:1px;line-height:1.2;
+    background:linear-gradient(145deg,var(--accent),var(--accent-2));color:#fff;
+    box-shadow:0 0 8px var(--accent-glow);
+    transition:transform .08s;
+  }
+  .pkAct:active{transform:scale(.94)}
+  .pkAct.sell{
+    background:linear-gradient(145deg,var(--emerald),#3da87a);color:#fff;
+    box-shadow:0 0 8px rgba(92,212,160,.35);
+  }
   .grid2 > .empty{grid-column:1/-1;width:100%;text-align:center;color:var(--ink-2);padding:30px 0;background:rgba(0,0,0,.2);border-radius:14px;border:1px dashed var(--line);font-size:13px}
   .empty{text-align:center;color:var(--ink-2);padding:30px 0;font-size:13px;background:rgba(0,0,0,.2);border-radius:14px;border:1px dashed var(--line)}
   .sell{border:none;background:linear-gradient(145deg,var(--emerald),#3da87a);color:#fff;border-radius:10px;padding:6px 10px;font-weight:700;font-size:11px;cursor:pointer;box-shadow:0 0 6px rgba(92,212,160,.3)}
@@ -1346,6 +1360,9 @@
         const lvBg=lv>=100?"rgba(255,215,106,.18)":lv>=50?"rgba(240,160,75,.18)":"rgba(255,247,230,.06)";
         const d=document.createElement("div");
         d.className="li pick-card" + (isEq?" on":"");
+        d.style.background = isEq
+          ? "linear-gradient(160deg,rgba(92,212,160,.15),var(--card),var(--card-2))"
+          : "linear-gradient(160deg,var(--card),var(--card-2))";
         d.innerHTML=`
           <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:4px;width:100%">
             <div style="font-weight:800;font-size:12px;line-height:1.25;flex:1;word-break:break-all">${p.name||pickName(p)}</div>
@@ -1357,9 +1374,9 @@
             <span style="color:var(--accent);margin-left:4px">⚡ ${fmt(pickDPS(p))}</span>
           </div>
           <div style="display:flex;gap:5px;margin-top:auto;width:100%">
-            ${isEq?'<button class="ub" disabled style="flex:1;font-size:10px;opacity:.55;cursor:default;background:rgba(92,212,160,.18);border-color:var(--emerald);color:var(--emerald)">✓ 已装备</button>'
-                 :'<button class="ub" data-eq="'+p.id+'" style="flex:1;font-size:10px;background:linear-gradient(145deg,var(--accent),var(--accent-2));color:#fff;border-color:transparent">装备</button>'}
-            <button class="ub" data-sl="${p.id}" style="flex:1;font-size:10px;background:rgba(92,212,160,.15);border-color:rgba(92,212,160,.4);color:var(--emerald)">🪙 ${fmt(pickSellValue(p))}</button>
+            ${isEq?'<div style="flex:1;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:var(--emerald);background:rgba(92,212,160,.2);border:1px solid var(--emerald);border-radius:10px;padding:7px 0;letter-spacing:1px">✓ 已装备</div>'
+                 :'<button class="pkAct" data-eq="'+p.id+'" style="flex:1">装备</button>'}
+            <button class="pkAct sell" data-sl="${p.id}" style="flex:1">🪙 '+fmt(pickSellValue(p))+'</button>
           </div>`;
         const eqb=d.querySelector('[data-eq]'); if(eqb)eqb.onclick=()=>equipPick(p.id);
         d.querySelector('[data-sl]').onclick=()=>sellPick(p.id);
