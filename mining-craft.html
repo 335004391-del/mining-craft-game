@@ -1060,12 +1060,34 @@
     let total=0, count=0;
     for(const k in st.ores){ total += st.ores[k]*k*8; count += st.ores[k]; }
     if(total<=0){hint("没有可出售的矿石");return;}
-    if(!confirm("确认出售全部 "+fmt(count)+" 个矿石，获得 🪙 "+fmt(total)+" 金币？"))return;
     const gain=Math.ceil(total*(1+RB.attrs.coin*0.1));
-    st.coins += gain;
-    st.ores = {};
-    hint("💰 出售 "+fmt(count)+" 个矿石 +🪙 "+fmt(gain));
-    render(); save();
+    // 自定义弹窗（避免浏览器 confirm 被屏蔽）
+    const overlay=document.createElement("div");
+    overlay.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px";
+    const dlg=document.createElement("div");
+    dlg.style.cssText="background:var(--card);border-radius:14px;max-width:360px;width:100%;padding:20px;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.3)";
+    dlg.innerHTML=`
+      <div style="font-size:48px;line-height:1;margin-bottom:10px">💰</div>
+      <div style="font-weight:800;font-size:16px;margin-bottom:6px">一键出售全部矿石？</div>
+      <div style="background:linear-gradient(135deg,rgba(255,215,106,.15),rgba(92,212,160,.1));border-radius:10px;padding:12px;margin:12px 0">
+        <div style="font-size:11px;color:var(--sub)">共 <b style="color:var(--gold)">${fmt(count)}</b> 个矿石</div>
+        <div style="font-size:24px;font-weight:800;color:var(--gold);margin-top:4px">+🪙 ${fmt(gain)}</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn ghost rbC" style="flex:1;padding:12px">取消</button>
+        <button class="btn rbOk" style="flex:1;padding:12px;background:linear-gradient(145deg,var(--emerald),#3da87a);box-shadow:0 4px 14px rgba(92,212,160,.4)">确认出售</button>
+      </div>`;
+    overlay.appendChild(dlg);
+    document.body.appendChild(overlay);
+    function close(){ overlay.remove(); }
+    dlg.querySelector(".rbC").onclick=close;
+    dlg.querySelector(".rbOk").onclick=()=>{
+      close();
+      st.coins += gain;
+      st.ores = {};
+      hint("💰 出售 "+fmt(count)+" 个矿石 +🪙 "+fmt(gain));
+      render(); save();
+    };
   }
   // 升级键 → Lv 字段、键 → 价格倍率（用 var 避免 const 的 TDZ 限制）
   var UP_KEYS={
