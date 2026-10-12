@@ -351,7 +351,7 @@
     <div class="tab on" id="tMine">
       <div class="card pk-card" id="pkCard"></div>
       <div class="card">
-        <h3><span class="e">⛰️</span> 当前矿脉 <span id="mineName" style="color:var(--accent)">🟫 碎石坡</span></h3>
+        <h3><span class="e">⛰️</span> 当前矿脉 <span id="mineName" style="color:var(--accent)">🟫 碎石坡</span> <span id="oreTotal" style="float:right;font-size:11px;color:var(--sub);font-weight:600">🪨 0</span></h3>
         <div id="diffTag" style="font-size:12px;color:var(--sub);margin-bottom:10px;line-height:1.5">难度 —</div>
         <div id="mineChips" style="display:flex;gap:6px;overflow-x:auto;flex-wrap:nowrap;padding-bottom:8px;margin-bottom:12px;scrollbar-width:thin"></div>
         <div id="conquestBox">
@@ -646,7 +646,9 @@
     return n.toExponential(1).replace("e+","e");         // 超出后缀：科学计数法兜底
   }
 
-  let st=load()||{
+  let st=load();
+  if(!st){
+    st={
     gems:{1:1}, ores:{1:1}, coins:0,
     craftLv:0, dropLv:0, gemLv:0, oreLv:0,  // 4 条基础升级
     fameLv:0, forgeLv:0, legendLv:0, luckyLv:0,  // 4 条打造人员升级
@@ -657,6 +659,8 @@
     mineCount:0, maxAtk:0, start:Date.now(), last:Date.now(),
     rebirthCount:0, totalCoinsEver:0    // 重生次数 + 累计总金币（用于算点数）
   };
+    save();  // 立即把 defaults 写入 localStorage，防止 setInterval 用 defaults 覆盖用户数据
+  }
   // 重生系统：10 项属性 + 累计获取的点数 + 总累计金币
   // 存储在独立 key 避免主存档被重置影响
   let RB=loadRB()||{points:0, total:0, attrs:{atk:0,crit:0,critDmg:0,atkSpd:0,gem:0,ore:0,def:0,coin:0,affix:0,floor:0}};
@@ -681,6 +685,7 @@
   if(st.mineLv==null)st.mineLv=1;
   if(st.mineMax==null)st.mineMax=1;
   if(st.mineMax>VEINS.length)st.mineMax=VEINS.length;
+  ensureDefaults();
   if(st.mineLv>st.mineMax)st.mineLv=st.mineMax;
   if(!st.veinProgress||typeof st.veinProgress!=="object")st.veinProgress={};
 
@@ -830,6 +835,17 @@
 
   function load(){try{return JSON.parse(localStorage.getItem(SAVE));}catch(e){return null;}}
   function save(){st.last=Date.now();localStorage.setItem(SAVE,JSON.stringify(st));}
+  // 兜底：旧存档字段缺失时填充，避免 undefined 阻断 render
+  function ensureDefaults(){
+    if(!Array.isArray(st.picks)) st.picks=[];
+    if(typeof st.equip==="undefined") st.equip=null;
+    if(!st.gems) st.gems={1:1};
+    if(!st.ores) st.ores={1:1};
+    if(typeof st.coins!=="number") st.coins=0;
+    if(typeof st.mineLv!=="number") st.mineLv=1;
+    if(typeof st.mineMax!=="number") st.mineMax=1;
+    if(!st.veinProgress) st.veinProgress={};
+  }
 
   // 挖矿
   function mine(){
@@ -1213,6 +1229,9 @@
 
   // 渲染
   function render(){
+    try{ renderInner(); }catch(e){ console.error("render 异常:", e.message); }
+  }
+  function renderInner(){
     const tg=bestGemTier(), to=bestOreLv();
     let totGem=0; for(const k in st.gems)totGem+=st.gems[k];
     $("#hGem").textContent=tg?(gemAt(tg).e+"×"+fmt(totGem)):"0";
@@ -1350,7 +1369,8 @@
     $("#swAutoSell").classList.toggle("on",st.autoSell);
     const pl=$("#pickList"); pl.innerHTML="";
     if(st.picks.length===0){
-      pl.innerHTML='<div class="empty" style="grid-column:1/-1">⛏️ 暂无镐子，去「合成」做一把</div>';
+      pl.innerHTML='<div class="empty" style="grid-column:1/-1;padding:30px 16px"><div style="font-size:32px;margin-bottom:8px">⛏️</div><div style="margin-bottom:12px">仓库是空的</div><button class="btn" id="goCraftFromInv" style="width:auto;padding:10px 20px;display:inline-block">去合成 →</button></div>';
+      const go=pl.querySelector("#goCraftFromInv"); if(go) go.onclick=()=>{document.querySelectorAll(".tab").forEach(x=>x.classList.remove("on"));document.querySelectorAll(".nav button").forEach(x=>x.classList.remove("on"));document.getElementById("tCraft").classList.add("on");document.querySelector('.nav button[data-t="tCraft"]').classList.add("on");render();};
     }else{
       st.picks.forEach(p=>{ if(!p.name) p.name=pickName(p);
         const isEq=st.equip===p, lv=starOf(p);
@@ -1516,6 +1536,7 @@
     document.querySelectorAll(".nav button").forEach(x=>x.classList.remove("on"));
     document.querySelectorAll(".tab").forEach(x=>x.classList.remove("on"));
     b.classList.add("on"); $("#"+b.dataset.t).classList.add("on");
+    save();   // 切 tab 立即存档（防止切到仓库时丢进度）
   }));
 
   // 抽屉
@@ -1530,7 +1551,7 @@
 
   // 自动挖矿
   setInterval(()=>{ if(st.auto&&st.equip)mine(); },1000);
-  setInterval(save,5000);
+  setInterval(save,1000);   // 1s 自动存档（防刷新丢数据）
   window.addEventListener("beforeunload",save);
 
   render();
