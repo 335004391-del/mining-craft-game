@@ -343,7 +343,7 @@
     <div class="chip gem"><div class="v" id="hGem">0</div><div class="k">💎 宝石</div></div>
     <div class="chip coin"><div class="v" id="hCoin">0</div><div class="k">🪙 金币</div></div>
     <div class="chip rb" id="chipRB"><div class="v" id="hRB">0</div><div class="k">✦ 属性点</div></div>
-    <div class="chip atk"><div class="v" id="hAtk">0</div><div class="k">⚔️ 攻击</div></div>
+    <div class="chip atk"><div class="v" id="hAtk">0</div><div class="k">⚔️ DPS</div></div>
   </div>
 
   <div class="body">
@@ -1236,7 +1236,7 @@
     let totGem=0; for(const k in st.gems)totGem+=st.gems[k];
     $("#hGem").textContent=tg?(gemAt(tg).e+"×"+fmt(totGem)):"0";
     $("#hCoin").textContent=fmt(st.coins);
-    $("#hAtk").textContent=st.equip?fmt(st.equip.attack)+"·"+fmt(pickDPS(st.equip)):"0";
+    $("#hAtk").textContent=st.equip?fmt(pickDPS(st.equip)):"0";
     $("#hRB").textContent=RB.points||0;
     renderRebirth();   // 同步重生页面数值
 
