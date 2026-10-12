@@ -48,7 +48,7 @@
       linear-gradient(180deg, var(--bg-1) 0%, var(--bg-2) 50%, var(--bg-3) 100%);
     background-attachment:fixed;
   }
-  .app{width:100%;max-width:480px;height:100%;display:flex;flex-direction:column;position:relative}
+  .app{width:100%;max-width:480px;height:100%;height:100dvh;display:flex;flex-direction:column;position:relative}
   /* === 顶栏（魔幻标题）=== */
   .head{padding:14px 16px 8px;display:flex;align-items:center;gap:8px;
     background:linear-gradient(180deg,rgba(0,0,0,.35),transparent);
@@ -289,12 +289,13 @@
     display:flex;border-top:1px solid var(--line-2);
     background:linear-gradient(180deg,rgba(0,0,0,.5),rgba(0,0,0,.85));
     backdrop-filter:blur(12px);
-    padding:6px 4px 8px;
+    padding:6px 4px calc(8px + env(safe-area-inset-bottom));   /* 兼容 iPhone 底部手势条 */
   }
   .nav button{
     flex:1;border:none;background:none;padding:6px 0;font-size:10px;color:var(--sub);
     cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;
     position:relative;border-radius:10px;transition:.2s;letter-spacing:1px;
+    touch-action:manipulation;   /* 移动端/触摸屏：去掉 300ms 点击延迟，避免“点了没反应” */
   }
   .nav button .e{font-size:21px;filter:grayscale(.5) opacity(.6);transition:.2s}
   .nav button.on{color:var(--gold);font-weight:700}
@@ -556,6 +557,20 @@
 
 <script>
 (function(){
+  // === 环境错误可视化：任何未捕获错误都直接显示在页面顶部 ===
+  // 方便在受限环境（sandbox iframe / 老旧 WebView）里定位“按钮点不动”这类问题
+  window.addEventListener("error",function(e){
+    try{
+      var b=document.getElementById("errBar");
+      if(!b){
+        b=document.createElement("div"); b.id="errBar";
+        b.style.cssText="position:fixed;left:0;right:0;top:0;z-index:99999;background:#7a1f2b;color:#fff;font-size:11px;padding:6px 10px;line-height:1.4;word-break:break-all;box-shadow:0 2px 10px rgba(0,0,0,.5)";
+        (document.body||document.documentElement).appendChild(b);
+      }
+      b.textContent="⚠️ 脚本错误："+(e.message||e.error||"未知");
+    }catch(_){}
+  });
+
   const SAVE="mine_craft_v1";
   // 16 阶宝石（从低到高；颜色渐变 + emoji）
   // 16 种宝石（每个有专属主属性 + 越高级越全面）
@@ -648,6 +663,16 @@
     return n.toExponential(1).replace("e+","e");         // 超出后缀：科学计数法兜底
   }
 
+  // === 存档安全层：localStorage 不可用（sandbox iframe / 隐私模式 / 配额满）时降级为内存存储。
+  //     否则 setItem 抛异常会中断初始化 → 后面的事件监听全都不执行 → 底栏点不动 ===
+  const MEM={};
+  const LS={
+    get(k){try{return localStorage.getItem(k);}catch(e){return (k in MEM)?MEM[k]:null;}},
+    set(k,v){try{localStorage.setItem(k,v);}catch(e){MEM[k]=v;}},
+    del(k){try{localStorage.removeItem(k);}catch(e){delete MEM[k];}}
+  };
+  function safeParse(s){try{return JSON.parse(s);}catch(e){return null;}}
+
   let st=load();
   if(!st){
     st={
@@ -665,11 +690,11 @@
   }
   // 重生系统：10 项属性 + 累计获取的点数 + 总累计金币
   // 存储在独立 key 避免主存档被重置影响
+  const RB_KEY="rebirth_v1";   // 必须在 loadRB() 调用之前声明：const 有 TDZ，晚声明会让读取永远失败（属性点刷新即丢）
   let RB=loadRB()||{points:0, total:0, attrs:{atk:0,crit:0,critDmg:0,atkSpd:0,gem:0,ore:0,def:0,coin:0,affix:0,floor:0}};
   if(!RB.attrs) RB.attrs={atk:0,crit:0,critDmg:0,atkSpd:0,gem:0,ore:0,def:0,coin:0,affix:0,floor:0};
-  const RB_KEY="rebirth_v1";
-  function loadRB(){try{return JSON.parse(localStorage.getItem(RB_KEY));}catch(e){return null;}}
-  function saveRB(){localStorage.setItem(RB_KEY, JSON.stringify(RB));}
+  function loadRB(){return safeParse(LS.get(RB_KEY));}
+  function saveRB(){LS.set(RB_KEY, JSON.stringify(RB));}
   // 旧档兼容：保证 picks 数组与 equip 一致
   if(!Array.isArray(st.picks))st.picks=[];
   if(st.equip && !st.picks.includes(st.equip))st.picks.push(st.equip);
@@ -835,8 +860,8 @@
     return false;
   }
 
-  function load(){try{return JSON.parse(localStorage.getItem(SAVE));}catch(e){return null;}}
-  function save(){st.last=Date.now();localStorage.setItem(SAVE,JSON.stringify(st));}
+  function load(){return safeParse(LS.get(SAVE));}
+  function save(){st.last=Date.now();LS.set(SAVE,JSON.stringify(st));}
   // 兜底：旧存档字段缺失时填充，避免 undefined 阻断 render
   function ensureDefaults(){
     if(!Array.isArray(st.picks)) st.picks=[];
@@ -1595,7 +1620,7 @@
     function close(){ overlay.remove(); }
     overlay.onclick=(e)=>{ if(e.target===overlay) close(); };
     dlg.querySelector(".rrC").onclick=close;
-    dlg.querySelector(".rrO").onclick=()=>{ close(); localStorage.removeItem(SAVE); location.reload(); };
+    dlg.querySelector(".rrO").onclick=()=>{ close(); LS.del(SAVE); LS.del(RB_KEY); location.reload(); };
   });
   $("#sellAllOre").addEventListener("click",sellAllOre);
 
